@@ -6,22 +6,21 @@
 #include <map>
 #include <algorithm>
 #include <fstream>
-#include <cctype> // for isspace
+#include <cctype>
 using namespace std;
 
-// Trie Node structure
 struct TrieNode {
     map<char, TrieNode*> children;
     bool isEndOfWord = false;
 };
 class Trie {
     TrieNode* root;
-    map<string, string> originalWords;  // maps lowercase word -> original word
+    map<string, string> originalWords; 
 
     void dfs(TrieNode* node, string current, vector<string>& results) {
         if (node->isEndOfWord) {
             if (originalWords.count(current))
-                results.push_back(originalWords[current]);  // get original casing
+                results.push_back(originalWords[current]);  
             else
                 results.push_back(current);
         }
@@ -38,7 +37,7 @@ public:
     void insert(const string& word) {
         string lowerWord = word;
         transform(lowerWord.begin(), lowerWord.end(), lowerWord.begin(), ::tolower);
-        originalWords[lowerWord] = word;  // store original casing
+        originalWords[lowerWord] = word;  
 
         TrieNode* node = root;
         for (char ch : lowerWord) {
@@ -67,10 +66,7 @@ public:
 string trim(const string& str) {
     size_t start = 0, end = str.size();
 
-    // Remove leading whitespace
     while (start < end && isspace(static_cast<unsigned char>(str[start]))) ++start;
-
-    // Remove trailing whitespace
     while (end > start && isspace(static_cast<unsigned char>(str[end - 1]))) --end;
 
     return str.substr(start, end - start);
@@ -87,12 +83,11 @@ void loadWordsFromFile(const string& filename, Trie& trie) {
     while (getline(file, word)) {
     word = trim(word);
 
-    // Remove UTF-8 BOM if present at beginning of the first word
     if (!word.empty() && static_cast<unsigned char>(word[0]) == 0xEF) {
         if (word.size() >= 3 &&
             static_cast<unsigned char>(word[1]) == 0xBB &&
             static_cast<unsigned char>(word[2]) == 0xBF) {
-            word = word.substr(3);  // remove BOM
+            word = word.substr(3);  
         }
     }
 
@@ -132,18 +127,12 @@ int main() {
     debug << "---\n";
 
     ofstream out(basePath + "words.txt");
-    if (!out.is_open()) {
-        debug << "❌ Failed to open words.txt for writing.\n";
-        debug.close();
-        return 0;
-    }
 
     istringstream stream(body);
     string line;
     while (getline(stream, line)) {
         line = trim(line);
 
-        // Remove BOM
         if (!line.empty() && static_cast<unsigned char>(line[0]) == 0xEF &&
             line.size() >= 3 &&
             static_cast<unsigned char>(line[1]) == 0xBB &&
@@ -158,12 +147,10 @@ int main() {
     }
 
     out.close();
-    debug << "✅ words.txt written successfully\n";
     debug.close();
     return 0;
 }
 
-    // Else, handle GET
     cout << "Content-type: text/plain\n\n";
 
     string queryStr = getenv("QUERY_STRING") ? getenv("QUERY_STRING") : "";
@@ -173,8 +160,7 @@ int main() {
     loadWordsFromFile("C:/xampp/htdocs/autocomplete-search/words.txt", trie);
 
     ofstream debug(basePath + "debug.txt", ios::app);
-    debug << "🔍 GET query: " << keyword << "\n";
-
+ 
     if (keyword.empty()) {
         cout << "No query provided.";
         debug << "❌ No query string found.\n";
@@ -182,12 +168,10 @@ int main() {
         vector<string> results = trie.suggest(keyword);
         if (results.empty()) {
             cout << "No autocomplete suggestions for: " << keyword;
-            debug << "❌ No suggestions for: " << keyword << "\n";
         } else {
             for (const string& word : results) {
                 cout << " - " << word << "\n";
             }
-            debug << "✅ Suggestions served for: " << keyword << "\n";
         }
     }
     debug.close();
