@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DSA Autocomplete Search</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="title-bar">
+    Autocomplete Search
+  </div>
+  <div class="container">
+    <div class="upload-section">
+      <input type="file" id="wordFile" accept=".txt" />
+    </div>
+
+    <div class="search-wrapper">
+      <input type="text" id="searchBox" placeholder="Type to search..." autocomplete="off" />
+      <ul id="suggestions"></ul>
+    </div>
+  </div>
+
+  <script>
+    // Clear file input value on page load to prevent old filename showing
+    window.onload = () => {
+      document.getElementById("wordFile").value = "";
+    };
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
