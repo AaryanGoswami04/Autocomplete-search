@@ -1,5 +1,10 @@
 #include <iostream>
 #include <cstdlib>
+extern "C" {
+    #define new new_
+    #include "sqlite3.h"
+    #undef new
+}
 #include <string>
 #include <sstream>
 #include <vector>
@@ -82,7 +87,8 @@ void loadWordsFromFile(const string& filename, Trie& trie) {
 
     while (getline(file, word)) {
     word = trim(word);
-
+    
+    //Handles UTF-8 BOM special charcaters(removes them)
     if (!word.empty() && static_cast<unsigned char>(word[0]) == 0xEF) {
         if (word.size() >= 3 &&
             static_cast<unsigned char>(word[1]) == 0xBB &&

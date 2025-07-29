@@ -17,13 +17,13 @@ html, body {
   top: 0;
   left: 0;
   width: 100vw;
-  background-image: linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   text-align: center;
   padding: 25px 0;
   font-size: 30px;
   font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
   z-index: 1000;
 }
 
@@ -90,29 +90,64 @@ input[type="file"]:hover {
 #suggestions li {
   padding: 10px 15px;
   border-bottom: 1px solid #eee;
-  user-select: none;         /* Prevent selecting text */
-  caret-color: transparent;  /* Hide caret */
-  cursor: pointer;           /* Pointer cursor */
+  user-select: none;     
+  caret-color: transparent; 
+  cursor: pointer;      
   pointer-events: auto;
   transition: background 0.2s ease;
 
-  outline: none;             /* Remove focus border */
+  outline: none;            
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
 }
 
-/* #suggestions li:hover {
-  background-color: #f0f8ff;
-} */
 
 #suggestions li:last-child {
   border-bottom: none;
 }
-/* .upload-section {
+.title-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 70px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
+  justify-content: center;   /* Center the title text */
   align-items: center;
-  gap: 10px;
-  margin: 1rem auto;
-  justify-content: center;
-} */
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+  z-index: 1000;
+}
+
+.title-text {
+  color: white;
+  font-size: 30px;
+  font-weight: bold;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+
+.logout-btn {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+
+.logout-btn:hover {
+  background-color: #e60000;
+}

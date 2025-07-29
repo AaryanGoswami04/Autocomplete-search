@@ -1,7 +1,6 @@
 const searchBox = document.getElementById('searchBox');
 const suggestions = document.getElementById('suggestions');
 
-// Prevent blur on click
 suggestions.addEventListener('mousedown', (e) => {
   e.preventDefault(); 
 });

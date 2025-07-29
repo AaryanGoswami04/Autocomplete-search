@@ -7,7 +7,8 @@
 </head>
 <body>
   <div class="title-bar">
-    Autocomplete Search
+     <span class="title-text">Autocomplete Search</span>
+  <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
   </div>
   <div class="container">
     <div class="upload-section">
@@ -21,7 +22,7 @@
   </div>
 
   <script>
-    // Clear file input value on page load to prevent old filename showing
+ 
     window.onload = () => {
       document.getElementById("wordFile").value = "";
     };
