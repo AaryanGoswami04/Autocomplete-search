@@ -299,16 +299,16 @@ int main() {
         }
     } else if (action == "login") {
         // Login logic
-        if (loginUser(db, username, password)) {
-            printModernResponse("Login Successful", 
-                              "Welcome back, " + username + "! Redirecting to main page...", 
-                              "success",
-                              "/autocomplete-search/htdocs/index.html");
-        } else {
-            printModernResponse("Login Failed", 
-                              "Invalid username or password. Please try again.", 
-                              "error");
-        }
+       if (loginUser(db, username, password)) {
+    printModernResponse("Login Successful", 
+                      "Welcome back, " + username + "! Redirecting to main page...", 
+                      "success",
+                      "/autocomplete-search/htdocs/index.html?user=" + username); // Add username parameter
+} else {
+    printModernResponse("Login Failed", 
+                      "Invalid username or password. Please try again.", 
+                      "error");
+}
     } else {
         printModernResponse("Error", "Invalid action specified.", "error");
     }

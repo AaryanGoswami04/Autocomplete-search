@@ -1,1 +1,16 @@
 CGI Executed
+=== Search Request Debug ===
+Full QUERY_STRING: [query=pploop&user=testuser&log=0]
+Extracted keyword: [pploop]
+Extracted username: [testuser]
+Extracted log flag: [0]
+---
+ℹ️ log=0 (typing) → not inserting into DB
+=== Search Request Debug ===
+Full QUERY_STRING: [query=pploop%0D&user=testuser&log=1]
+Extracted keyword: [pploop]
+Extracted username: [testuser]
+Extracted log flag: [1]
+---
+✅ Opened DB successfully (log=1)
+✅ Click query inserted: user=testuser term=[pploop]

@@ -1,3 +1,3 @@
-http://localhost/autocomplete-search/htdocs/index.html
-Hello My name is
-Hello it is
+Hello
+Helloop
+pploop
