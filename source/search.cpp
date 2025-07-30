@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <ctime>
 extern "C" {
     #define new new_
     #include "sqlite3.h"
@@ -77,7 +78,7 @@ string trim(const string& str) {
     return str.substr(start, end - start);
 }
 
-// --- URL decode helper (fixes %0D etc.) ---
+// URL decode helper
 static string urlDecode(const string& s) {
     string out;
     out.reserve(s.size());
@@ -97,11 +98,84 @@ static string urlDecode(const string& s) {
     return out;
 }
 
+// Ensure user exists in database (create if doesn't exist)
+// Ensure user exists in database (create if doesn't exist)
+void ensureUserExists(sqlite3* db, const string& username) {
+    const char* checkUserSQL = "SELECT username FROM users WHERE username = ?";
+    sqlite3_stmt* stmt;
+    
+    if (sqlite3_prepare_v2(db, checkUserSQL, -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+        
+        if (sqlite3_step(stmt) != SQLITE_ROW) {
+            sqlite3_finalize(stmt);
+            
+            const char* insertUserSQL = "INSERT OR IGNORE INTO users (username, password) VALUES (?, 'default')";
+            if (sqlite3_prepare_v2(db, insertUserSQL, -1, &stmt, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+                sqlite3_step(stmt);
+            }
+        }
+        sqlite3_finalize(stmt);
+    }
+}
+
+void handleSearchHistory(const string& username, const string& basePath) {
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    
+    string dbPath = basePath + "sqlite/users.db";
+    int rc = sqlite3_open(dbPath.c_str(), &db);
+    if (rc) {
+        cout << "Content-Type: application/json\r\n\r\n";
+        cout << "{\"error\": \"Database connection failed: " << sqlite3_errmsg(db) << "\"}\n";
+        return;
+    }
+    
+    const char* sql = "SELECT search_term, datetime(timestamp, 'localtime') as formatted_timestamp FROM search_history "
+                      "WHERE username = ? "
+                      "ORDER BY timestamp DESC "
+                      "LIMIT 20";
+    
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+        cout << "Content-Type: application/json\r\n\r\n";
+        cout << "{\"error\": \"SQL prepare failed: " << sqlite3_errmsg(db) << "\"}\n";
+        sqlite3_close(db);
+        return;
+    }
+    
+    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+    
+    cout << "Content-Type: application/json\r\n\r\n";
+    cout << "[\n";
+    
+    bool first = true;
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+        if (!first) {
+            cout << ",\n";
+        }
+        first = false;
+        
+        const char* search_term = (const char*)sqlite3_column_text(stmt, 0);
+        const char* timestamp = (const char*)sqlite3_column_text(stmt, 1);
+        
+        cout << "  {\n";
+        cout << "    \"search_term\": \"" << (search_term ? search_term : "") << "\",\n";
+        cout << "    \"timestamp\": \"" << (timestamp ? timestamp : "") << "\"\n";
+        cout << "  }";
+    }
+    
+    cout << "\n]\n";
+    
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+}
+
 void loadWordsFromFile(const string& filename, Trie& trie) {
     ifstream file(filename);
     string word;
     if (!file.is_open()) {
-        cout << "Could not open file: " << filename << "\n";
         return;
     }
 
@@ -109,7 +183,6 @@ void loadWordsFromFile(const string& filename, Trie& trie) {
     while (getline(file, word)) {
         word = trim(word);
 
-        // Remove UTF-8 BOM only on first line if present
         if (first && !word.empty() &&
             static_cast<unsigned char>(word[0]) == 0xEF &&
             word.size() >= 3 &&
@@ -119,7 +192,6 @@ void loadWordsFromFile(const string& filename, Trie& trie) {
         }
         first = false;
 
-        // Remove stray CR (carriage return) if present
         if (!word.empty() && word.back() == '\r') word.pop_back();
 
         if (!word.empty())
@@ -134,20 +206,16 @@ string getQueryParam(const string& query, const string& key) {
     size_t start = pos + key.size() + 1;
     size_t end = query.find('&', start);
     string raw = query.substr(start, end - start);
-    return urlDecode(raw); // decode percent-encoded
+    return urlDecode(raw);
 }
 
 int main() {
     string basePath = "C:/xampp/htdocs/autocomplete-search/";
-    ofstream log(basePath + "debug.txt");
-    log << "CGI Executed\n";
-    log.close();
-
+ 
     string requestMethod = getenv("REQUEST_METHOD") ? getenv("REQUEST_METHOD") : "";
 
-    // ------------------ POST: upload words file ------------------
     if (requestMethod == "POST") {
-        cout << "Content-type: text/plain\n\n";
+        cout << "Content-type: text/plain\r\n\r\n";
 
         string contentLengthStr = getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0";
         int contentLength = stoi(contentLengthStr);
@@ -155,14 +223,7 @@ int main() {
         string body(contentLength, '\0');
         cin.read(&body[0], contentLength);
 
-        ofstream debugLog(basePath + "debug.txt", ios::app);
-        debugLog << "=== POST Received ===\n";
-        debugLog << "CONTENT_LENGTH = " << contentLength << "\n";
-        debugLog << "Raw body:\n" << body << "\n";
-        debugLog << "---\n";
-
         ofstream out(basePath + "words.txt");
-
         istringstream stream(body);
         string line;
         bool first = true;
@@ -178,7 +239,6 @@ int main() {
             }
             first = false;
 
-            // Remove embedded NUL and trailing \r
             line.erase(remove(line.begin(), line.end(), '\0'), line.end());
             if (!line.empty() && line.back() == '\r') line.pop_back();
 
@@ -188,37 +248,34 @@ int main() {
         }
 
         out.close();
-        debugLog.close();
+        cout << "File uploaded successfully\n";
         return 0;
     }
 
-    // ------------------ GET: suggestions / click logging ------------------
-    cout << "Content-type: text/plain\n\n";
-
     string queryStr = getenv("QUERY_STRING") ? getenv("QUERY_STRING") : "";
-    string keyword  = getQueryParam(queryStr, "query");
+    
+    if (queryStr.find("history=1") != string::npos) {
+        string username = getQueryParam(queryStr, "user");
+        if (username.empty()) username = "guest";
+        handleSearchHistory(username, basePath);
+        return 0;
+    }
+    
+    cout << "Content-type: text/plain\r\n\r\n";
+    
+    string keyword = getQueryParam(queryStr, "query");
     string username = getQueryParam(queryStr, "user");
-    string logFlag  = getQueryParam(queryStr, "log"); // "1": click log; "0" or empty: typing/suggestions only
+    string logFlag = getQueryParam(queryStr, "log");
 
     if (username.empty()) username = "guest";
-    if (!keyword.empty() && keyword.back() == '\r') keyword.pop_back(); // strip stray CR if any
-
-    ofstream debugLog(basePath + "debug.txt", ios::app);
-    debugLog << "=== Search Request Debug ===\n";
-    debugLog << "Full QUERY_STRING: [" << queryStr << "]\n";
-    debugLog << "Extracted keyword: [" << keyword << "]\n";
-    debugLog << "Extracted username: [" << username << "]\n";
-    debugLog << "Extracted log flag: [" << logFlag << "]\n";
-    debugLog << "---\n";
+    if (!keyword.empty() && keyword.back() == '\r') keyword.pop_back();
 
     Trie trie;
     loadWordsFromFile(basePath + "words.txt", trie);
 
     if (keyword.empty()) {
         cout << "No query provided.";
-        debugLog << "❌ No query string found.\n";
     } else {
-        // Always return suggestions for the typed query
         vector<string> results = trie.suggest(keyword);
         if (results.empty()) {
             cout << "No autocomplete suggestions for: " << keyword;
@@ -228,44 +285,25 @@ int main() {
             }
         }
 
-        // Insert only when log=1 (clicked suggestion)
-        if (logFlag == "1") {
-            if (keyword.size() >= 1) {
-                sqlite3* db;
-                string dbPath = basePath + "sqlite/users.db";
-                int rc = sqlite3_open(dbPath.c_str(), &db);
-                if (rc != SQLITE_OK) {
-                    debugLog << "❌ Failed to open DB: " << sqlite3_errmsg(db) << "\n";
-                } else {
-                    // Enforce foreign keys (nice to have)
-                    sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nullptr, nullptr, nullptr);
-                    debugLog << "✅ Opened DB successfully (log=1)\n";
-
-                    const char* insertSQL = "INSERT INTO search_history (username, search_term) VALUES (?, ?);";
-                    sqlite3_stmt* stmt;
-                    if (sqlite3_prepare_v2(db, insertSQL, -1, &stmt, nullptr) == SQLITE_OK) {
-                        sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_TRANSIENT);
-                        sqlite3_bind_text(stmt, 2, keyword.c_str(), -1, SQLITE_TRANSIENT);
-                        if (sqlite3_step(stmt) != SQLITE_DONE) {
-                            debugLog << "❌ Failed to insert query: " << sqlite3_errmsg(db) << "\n";
-                        } else {
-                            debugLog << "✅ Click query inserted: user=" << username
-                                     << " term=[" << keyword << "]\n";
-                        }
-                        sqlite3_finalize(stmt);
-                    } else {
-                        debugLog << "❌ Prepare failed: " << sqlite3_errmsg(db) << "\n";
-                    }
-                    sqlite3_close(db);
+        if (logFlag == "1" && keyword.size() >= 1) {
+            sqlite3* db;
+            string dbPath = basePath + "sqlite/users.db";
+            int rc = sqlite3_open(dbPath.c_str(), &db);
+            if (rc == SQLITE_OK) {
+                sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nullptr, nullptr, nullptr);
+                ensureUserExists(db, username);
+                const char* insertSQL = "INSERT INTO search_history (username, search_term) VALUES (?, ?);";
+                sqlite3_stmt* stmt;
+                if (sqlite3_prepare_v2(db, insertSQL, -1, &stmt, nullptr) == SQLITE_OK) {
+                    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_TRANSIENT);
+                    sqlite3_bind_text(stmt, 2, keyword.c_str(), -1, SQLITE_TRANSIENT);
+                    sqlite3_step(stmt);
+                    sqlite3_finalize(stmt);
                 }
-            } else {
-                debugLog << "ℹ️ Skipped insert (too short): [" << keyword << "]\n";
+                sqlite3_close(db);
             }
-        } else {
-            debugLog << "ℹ️ log=0 (typing) → not inserting into DB\n";
         }
     }
 
-    debugLog.close();
     return 0;
 }

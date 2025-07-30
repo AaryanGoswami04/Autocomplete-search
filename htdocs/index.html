@@ -19,15 +19,21 @@
       <input type="text" id="searchBox" placeholder="Type to search..." autocomplete="off" />
       <ul id="suggestions"></ul>
     </div>
+
+    <div class="dashboard-section">
+      <h2 class="dashboard-title">Recent Search History</h2>
+      <div id="searchHistory" class="search-history">
+        <div class="loading-message">Loading search history...</div>
+      </div>
+    </div>
   </div>
 
   <script>
- 
     window.onload = () => {
       document.getElementById("wordFile").value = "";
     };
   </script>
-  <script src="script.js?v=8"></script>
+  <script src="script.js?v=9"></script>
 
 </body>
 </html>

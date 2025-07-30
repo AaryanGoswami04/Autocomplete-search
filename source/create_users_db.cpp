@@ -8,7 +8,6 @@ int main() {
     // Open database (creates it if it doesn't exist)
     int rc = sqlite3_open("sqlite/users.db", &db);
     if (rc) {
-        std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
         return 1;
     }
 
@@ -19,7 +18,6 @@ int main() {
 
     rc = sqlite3_exec(db, userTableSQL, 0, 0, &errMsg);
     if (rc != SQLITE_OK) {
-        std::cerr << "SQL error creating users table: " << errMsg << std::endl;
         sqlite3_free(errMsg);
     }
 
@@ -33,10 +31,7 @@ int main() {
 
     rc = sqlite3_exec(db, historyTableSQL, 0, 0, &errMsg);
     if (rc != SQLITE_OK) {
-        std::cerr << "SQL error creating search_history table: " << errMsg << std::endl;
         sqlite3_free(errMsg);
-    } else {
-        std::cout << "Database and tables created successfully." << std::endl;
     }
 
     sqlite3_close(db);

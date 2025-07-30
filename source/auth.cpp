@@ -46,10 +46,8 @@ void insertSampleUser(sqlite3 *db) {
             sqlite3_finalize(stmt);
             const char* insert_sql = "INSERT INTO users (username, password) VALUES ('admin', 'admin123');";
             char *errMsg = nullptr;
-            if (sqlite3_exec(db, insert_sql, 0, 0, &errMsg) != SQLITE_OK) {
-                cerr << "Failed to insert sample user: " << errMsg << endl;
-                sqlite3_free(errMsg);
-            }
+            sqlite3_exec(db, insert_sql, 0, 0, &errMsg);
+            if (errMsg) sqlite3_free(errMsg);
         } else {
             sqlite3_finalize(stmt);
         }
@@ -239,7 +237,6 @@ int main() {
     string password = getValue(postData, "password");
     string confirmPassword = getValue(postData, "confirm_password");
 
-    // Basic input validation
     if (username.empty() || password.empty()) {
         printModernResponse("Error", "Username and password are required.", "error");
         return 0;
@@ -250,7 +247,6 @@ int main() {
         return 0;
     }
 
-    // Open database
     sqlite3 *db;
     int rc = sqlite3_open("../sqlite/users.db", &db);
 
@@ -259,7 +255,6 @@ int main() {
         return 1;
     }
 
-    // Create table if it doesn't exist
     const char* create_table_sql = R"(
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -277,11 +272,9 @@ int main() {
         return 1;
     }
 
-    // Insert sample user if DB is empty
     insertSampleUser(db);
 
     if (action == "register") {
-        // Registration logic
         if (password != confirmPassword) {
             printModernResponse("Registration Failed", "Passwords do not match.", "error");
             sqlite3_close(db);
@@ -290,25 +283,24 @@ int main() {
 
         if (registerUser(db, username, password)) {
             printModernResponse("Registration Successful", 
-                              "Your account has been created successfully! You can now log in.", 
-                              "success");
+                                "Your account has been created successfully! You can now log in.", 
+                                "success");
         } else {
             printModernResponse("Registration Failed", 
-                              "Username already exists or registration failed. Please try a different username.", 
-                              "error");
+                                "Username already exists or registration failed. Please try a different username.", 
+                                "error");
         }
     } else if (action == "login") {
-        // Login logic
-       if (loginUser(db, username, password)) {
-    printModernResponse("Login Successful", 
-                      "Welcome back, " + username + "! Redirecting to main page...", 
-                      "success",
-                      "/autocomplete-search/htdocs/index.html?user=" + username); // Add username parameter
-} else {
-    printModernResponse("Login Failed", 
-                      "Invalid username or password. Please try again.", 
-                      "error");
-}
+        if (loginUser(db, username, password)) {
+            printModernResponse("Login Successful", 
+                                "Welcome back, " + username + "! Redirecting to main page...", 
+                                "success",
+                                "/autocomplete-search/htdocs/index.html?user=" + username);
+        } else {
+            printModernResponse("Login Failed", 
+                                "Invalid username or password. Please try again.", 
+                                "error");
+        }
     } else {
         printModernResponse("Error", "Invalid action specified.", "error");
     }
