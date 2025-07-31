@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Your Uploads</title>
-  <link id="theme-stylesheet" rel="stylesheet">
+  <script>
+    (function () {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.write(`<link id="theme-stylesheet" rel="stylesheet" href="${theme}.css">`);
+    })();
+  </script>
 </head>
 <body>
   <!-- Title bar with navigation -->
