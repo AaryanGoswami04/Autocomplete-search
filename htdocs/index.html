@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>DSA Autocomplete Search</title>
-  <link rel="stylesheet" href="styles.css">
+  <!-- Default theme is now light.css, with an ID for easy access -->
+  <link id="theme-stylesheet" rel="stylesheet" href="light.css">
 </head>
 <body>
   <div class="title-bar">
     <span class="title-text">Autocomplete Search</span>
     <div class="nav-buttons">
+      <button class="nav-btn" onclick="window.location.href='settings.html'">Settings</button>
       <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
     </div>
   </div>
@@ -23,32 +25,44 @@
       <ul id="suggestions"></ul>
     </div>
 
-    <!-- Search history section removed - now on separate page -->
     <div class="quick-stats">
       <p>Start typing to see autocomplete suggestions. Your search history will be saved automatically.</p>
-      <p><a href="history.html" class="history-link">View your search history →</a></p>
-      <p><a href="uploads.html" class="history-link">View your uploaded files →</a></p>
+      <p>
+        <a href="history.html" class="history-link">View your search history →</a><br>
+        <a href="uploads.html" class="history-link">View your uploaded files →</a>
+      </p>
     </div>
-    
   </div>
 
   <script>
+    // This script now also loads the user's theme preference
     window.onload = () => {
       document.getElementById("wordFile").value = "";
       
-      // Check if we have a query parameter from history page
       const urlParams = new URLSearchParams(window.location.search);
       const query = urlParams.get('query');
       if (query) {
         document.getElementById('searchBox').value = query;
         document.getElementById('searchBox').focus();
-        // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // --- Apply Theme on Load ---
+      const username = sessionStorage.getItem('currentUser') || 'guest';
+      if (username !== 'guest') {
+        fetch(`/cgi-bin/search.cgi?get_settings=1&user=${username}`)
+          .then(res => res.ok ? res.json() : { theme: 'light' }) // Default to light on error
+          .then(settings => {
+            // Assumes theme CSS files are named 'light.css', 'dark.css', etc.
+            document.getElementById('theme-stylesheet').href = `${settings.theme}.css`;
+          })
+          .catch(err => {
+            console.error("Failed to load theme, defaulting to light.css", err);
+            document.getElementById('theme-stylesheet').href = 'light.css';
+          });
       }
     };
   </script>
- <script src="script.js?v=1"></script>
-
-
+  <script src="script.js?v=1"></script>
 </body>
 </html>

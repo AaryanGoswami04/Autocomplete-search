@@ -1,19 +1,16 @@
-// history.js - Search history functionality
+// history.js - Search history and theme functionality
 document.addEventListener("DOMContentLoaded", function () {
   const searchHistoryElement = document.getElementById("searchHistory");
   const historyCountElement = document.getElementById("historyCount");
   const refreshButton = document.getElementById("refreshHistory");
+  const themeStylesheet = document.getElementById('theme-stylesheet');
 
-  // Get username from URL or session storage
-  const urlParams = new URLSearchParams(window.location.search);
-  const loggedInUser = urlParams.get("user");
-  let currentUsername = loggedInUser || sessionStorage.getItem('currentUser') || "guest";
-  
-  if (loggedInUser) {
-    sessionStorage.setItem('currentUser', loggedInUser);
-    // Clean URL
-    const cleanUrl = window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
+  const username = sessionStorage.getItem('currentUser') || "guest";
+
+  function applyTheme(themeName) {
+    if (themeName) {
+      themeStylesheet.href = `${themeName}.css`;
+    }
   }
 
   function showLoading() {
@@ -27,29 +24,21 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function showNoHistory() {
-    searchHistoryElement.innerHTML = '<div class="no-history-message">No search history found. Start searching to see your history here!</div>';
+    searchHistoryElement.innerHTML = '<div class="no-history-message">No search history found.</div>';
     historyCountElement.textContent = "0 searches recorded";
   }
 
   function loadSearchHistory() {
     showLoading();
     
-    const username = currentUsername || "guest";
     const historyUrl = `/cgi-bin/search.cgi?history=1&user=${encodeURIComponent(username)}`;
     
-    console.log("[history.js] Fetching history from:", historyUrl);
-
     fetch(historyUrl)
       .then(response => {
-        console.log("[history.js] History response status:", response.status, response.statusText);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json();
       })
       .then(data => {
-        console.log("[history.js] History data received:", data);
-        
         if (data.error) {
           showError(data.error);
           return;
@@ -60,12 +49,10 @@ document.addEventListener("DOMContentLoaded", function () {
           return;
         }
 
-        // Update count
         historyCountElement.textContent = `${data.length} recent searches`;
 
-        // Build history HTML
         let historyHTML = "";
-        data.forEach((item, index) => {
+        data.forEach(item => {
           historyHTML += `
             <div class="history-item" data-search-term="${item.search_term}" title="Click to search again">
               <span class="search-term">${item.search_term}</span>
@@ -76,32 +63,44 @@ document.addEventListener("DOMContentLoaded", function () {
 
         searchHistoryElement.innerHTML = historyHTML;
 
-        // Add click handlers to history items
-        const historyItems = searchHistoryElement.querySelectorAll('.history-item');
-        historyItems.forEach(item => {
+        searchHistoryElement.querySelectorAll('.history-item').forEach(item => {
           item.addEventListener('click', function() {
             const searchTerm = this.getAttribute('data-search-term');
-            console.log("[history.js] History item clicked:", searchTerm);
-            
-            // Redirect to main page with the search term
             window.location.href = `index.html?query=${encodeURIComponent(searchTerm)}`;
           });
         });
       })
       .catch(error => {
-        console.error("[history.js] Error loading history:", error);
+        console.error("Error loading history:", error);
         showError(error.message);
       });
   }
+  
+  function init() {
+    // This function ensures the theme is set *before* content is loaded.
+    if (username !== 'guest') {
+      // 1. Fetch the theme first
+      fetch(`/cgi-bin/search.cgi?get_settings=1&user=${username}`)
+        .then(res => res.ok ? res.json() : { theme: 'light' })
+        .then(settings => {
+          // 2. Apply the theme
+          applyTheme(settings.theme);
+          // 3. THEN load the history content
+          loadSearchHistory();
+        })
+        .catch(err => {
+          console.error("Failed to load theme, defaulting to light.css", err);
+          applyTheme('light');
+          loadSearchHistory();
+        });
+    } else {
+        // For guests, just load history with default theme
+        loadSearchHistory();
+    }
+  }
 
-  // Refresh button handler
-  refreshButton.addEventListener("click", function() {
-    console.log("[history.js] Refresh button clicked");
-    loadSearchHistory();
-  });
+  refreshButton.addEventListener("click", loadSearchHistory);
 
-  // Load history on page load
-  loadSearchHistory();
-
-  console.log("[history.js] History page initialized for user:", currentUsername);
+  // Initialize the page
+  init();
 });

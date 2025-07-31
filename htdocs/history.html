@@ -3,30 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <title>Search History - DSA Autocomplete</title>
-  <link rel="stylesheet" href="styles.css">
+  
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.write(`<link id="theme-stylesheet" rel="stylesheet" href="${theme}.css">`);
+    })();
+  </script>
 </head>
 <body>
   <div class="title-bar">
-    <button class="back-btn" onclick="window.location.href='index.html'">← Back to Search</button>
+    <div class="nav-buttons">
+        <button class="back-btn" onclick="window.location.href='index.html'">← Back</button>
+    </div>
     <span class="title-text">Search History</span>
-    <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
+    <div class="nav-buttons">
+      <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
+    </div>
   </div>
   
   <div class="container">
     <div class="dashboard-section">
-      <h2 class="dashboard-title">Your Recent Search History</h2>
+      <h2>Your Recent Search History</h2>
       <div class="history-stats">
         <span id="historyCount" class="history-stat">Loading...</span>
       </div>
       <div id="searchHistory" class="search-history">
-        <div class="loading-message">Loading search history...</div>
+        <div class="loading-message">Loading...</div>
       </div>
       <div class="history-actions">
         <button id="refreshHistory" class="action-btn">Refresh History</button>
       </div>
     </div>
   </div>
-
+  
   <script src="history.js?v=1"></script>
 </body>
 </html>
