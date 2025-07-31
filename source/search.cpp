@@ -94,6 +94,56 @@ int main() {
 
     // --- ROUTER: Direct traffic based on request type ---
 
+    // === (NEW) HANDLE PROFILE DATA REQUEST ===
+    if (getQueryParam(queryStr, "get_profile") == "1") {
+        cout << "Content-Type: application/json\r\n\r\n";
+        string password = "";
+        sqlite3* db;
+        if (sqlite3_open(DB_PATH.c_str(), &db) == SQLITE_OK) {
+            string sql = "SELECT password FROM users WHERE username = ?;";
+            sqlite3_stmt* stmt;
+            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) == SQLITE_OK) {
+                sqlite3_bind_text(stmt, 1, user.c_str(), -1, SQLITE_STATIC);
+                if (sqlite3_step(stmt) == SQLITE_ROW) {
+                    password = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+                }
+            }
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+        }
+        cout << "{\"username\":\"" << json_escape(user) << "\",\"password\":\"" << json_escape(password) << "\"}";
+        return 0;
+    }
+
+    // === (NEW) HANDLE PASSWORD UPDATE (POST) ===
+    if (method == "POST" && getQueryParam(queryStr, "update_password") == "1") {
+        cout << "Content-Type: text/plain\r\n\r\n";
+        string newPassword;
+        char c;
+        while(cin.get(c)) { newPassword += c; }
+
+        sqlite3* db;
+        int rc = -1;
+        if (sqlite3_open(DB_PATH.c_str(), &db) == SQLITE_OK) {
+            string sql = "UPDATE users SET password = ? WHERE username = ?;";
+            sqlite3_stmt* stmt;
+            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) == SQLITE_OK) {
+                sqlite3_bind_text(stmt, 1, newPassword.c_str(), -1, SQLITE_STATIC);
+                sqlite3_bind_text(stmt, 2, user.c_str(), -1, SQLITE_STATIC);
+                rc = sqlite3_step(stmt);
+            }
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+        }
+
+        if (rc == SQLITE_DONE) {
+            cout << "Password updated successfully!";
+        } else {
+            cout << "Failed to update password.";
+        }
+        return 0;
+    }
+
     // === HANDLE SETTINGS REQUESTS ===
     if (getQueryParam(queryStr, "get_settings") == "1") {
         cout << "Content-Type: application/json\r\n\r\n";

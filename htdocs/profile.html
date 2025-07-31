@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Profile</title>
+    <link id="theme-stylesheet" rel="stylesheet" href="light.css">
+    <style>
+        /* Additional styles for profile page */
+        .profile-container, .password-form {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem 2rem;
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+        .profile-container h2, .password-form h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .profile-info p {
+            font-size: 1.1rem;
+            color: #4a5568;
+            margin-bottom: 0.75rem;
+        }
+        .profile-info strong {
+            color: #2d3748;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #4a5568;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        #message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-weight: 500;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #message.visible {
+            opacity: 1;
+        }
+        #message.success {
+            background-color: rgba(72, 187, 120, 0.1);
+            color: #2f855a;
+        }
+        #message.error {
+            background-color: rgba(245, 101, 101, 0.1);
+            color: #c53030;
+        }
+    </style>
+</head>
+<body>
+
+<div class="title-bar">
+    <div class="nav-buttons">
+        <button class="back-btn" onclick="window.location.href='index.html'">← Back</button>
+    </div>
+    <span class="title-text">User Profile</span>
+    <div class="nav-buttons">
+        <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="profile-container">
+        <h2>Profile Information</h2>
+        <div class="profile-info">
+            <p><strong>Username:</strong> <span id="username"></span></p>
+            <p><strong>Password:</strong> <span id="password"></span></p>
+        </div>
+    </div>
+
+    <div class="password-form">
+        <h3>Change Password</h3>
+        <form id="passwordChangeForm">
+            <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" required minlength="3">
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm New Password</label>
+                <input type="password" id="confirmPassword" required minlength="3">
+            </div>
+            <button type="submit" class="action-btn">Change Password</button>
+        </form>
+        <div id="message"></div>
+    </div>
+</div>
+
+<script src="profile.js"></script>
+</body>
+</html>
