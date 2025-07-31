@@ -7,9 +7,12 @@
 </head>
 <body>
   <div class="title-bar">
-     <span class="title-text">Autocomplete Search</span>
-  <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
+    <span class="title-text">Autocomplete Search</span>
+    <div class="nav-buttons">
+      <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
+    </div>
   </div>
+  
   <div class="container">
     <div class="upload-section">
       <input type="file" id="wordFile" accept=".txt" />
@@ -20,20 +23,32 @@
       <ul id="suggestions"></ul>
     </div>
 
-    <div class="dashboard-section">
-      <h2 class="dashboard-title">Recent Search History</h2>
-      <div id="searchHistory" class="search-history">
-        <div class="loading-message">Loading search history...</div>
-      </div>
+    <!-- Search history section removed - now on separate page -->
+    <div class="quick-stats">
+      <p>Start typing to see autocomplete suggestions. Your search history will be saved automatically.</p>
+      <p><a href="history.html" class="history-link">View your search history →</a></p>
+      <p><a href="uploads.html" class="history-link">View your uploaded files →</a></p>
     </div>
+    
   </div>
 
   <script>
     window.onload = () => {
       document.getElementById("wordFile").value = "";
+      
+      // Check if we have a query parameter from history page
+      const urlParams = new URLSearchParams(window.location.search);
+      const query = urlParams.get('query');
+      if (query) {
+        document.getElementById('searchBox').value = query;
+        document.getElementById('searchBox').focus();
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     };
   </script>
-  <script src="script.js?v=9"></script>
+ <script src="script.js?v=1"></script>
+
 
 </body>
 </html>

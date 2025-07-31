@@ -262,3 +262,136 @@ body {
     align-self: flex-end;
   }
 }
+
+.nav-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.nav-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+}
+
+.back-btn {
+  background: #4a5568;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-right: auto;
+}
+
+.back-btn:hover {
+  background: #2d3748;
+  transform: translateY(-1px);
+}
+
+/* Quick stats section on main page */
+.quick-stats {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-top: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  text-align: center;
+  color: #4a5568;
+}
+
+.quick-stats p {
+  margin: 0.5rem 0;
+}
+
+.history-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.history-link:hover {
+  color: #5a67d8;
+  text-decoration: underline;
+}
+
+/* History page specific styles */
+.history-stats {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.history-stat {
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.history-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.action-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+}
+
+.danger-btn {
+  background: #e53e3e;
+}
+
+.danger-btn:hover {
+  background: #c53030;
+}
+
+/* Enhanced history items for history page */
+.history-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.history-item::before {
+  content: '';
+  position: absolute;
+  left: -100%;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.history-item:hover::before {
+  left: 100%;
+}

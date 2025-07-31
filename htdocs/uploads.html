@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Uploads</title>
+  <link rel="stylesheet" href="uploads.css">
+</head>
+<body>
+  <div class="title-bar">
+    <span class="title-text">Autocomplete Search</span>
+    <div class="nav-buttons">
+      <button class="back-btn" onclick="window.location.href='index.html'">Back</button>
+      <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="upload-list-wrapper">
+      <h2>Files You Uploaded</h2>
+      <ul id="uploadList"></ul>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const user = sessionStorage.getItem('currentUser') || 'guest';
+      fetch(`/cgi-bin/search.cgi?uploads=1&user=${encodeURIComponent(user)}`)
+        .then(res => res.json())
+        .then(data => {
+          const ul = document.getElementById('uploadList');
+          if (Array.isArray(data) && data.length > 0) {
+            data.forEach(file => {
+              const li = document.createElement('li');
+              li.className = 'upload-item';
+              li.innerHTML = `<span class="upload-name">${file.filename}</span> <span class="upload-time">${file.upload_time}</span>`;
+              ul.appendChild(li);
+            });
+          } else {
+            ul.innerHTML = '<li class="empty-message">No uploaded files found.</li>';
+          }
+        })
+        .catch(err => {
+          document.getElementById('uploadList').innerHTML = '<li class="error-message">Failed to load uploads.</li>';
+          console.error("Error fetching uploads:", err);
+        });
+    });
+  </script>
+</body>
+</html>

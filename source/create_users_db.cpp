@@ -29,11 +29,23 @@ int main() {
                                   "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,"
                                   "FOREIGN KEY(username) REFERENCES users(username));";
 
+
+
+    const char *uploadTableSQL = "CREATE TABLE IF NOT EXISTS uploads ("
+                             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                             "username TEXT NOT NULL,"
+                             "filename TEXT NOT NULL,"
+                             "upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                             "FOREIGN KEY(username) REFERENCES users(username));";
+
     rc = sqlite3_exec(db, historyTableSQL, 0, 0, &errMsg);
     if (rc != SQLITE_OK) {
         sqlite3_free(errMsg);
     }
-
+    rc = sqlite3_exec(db, uploadTableSQL, 0, 0, &errMsg);  // <-- Add this line
+if (rc != SQLITE_OK) {
+    sqlite3_free(errMsg);
+}
     sqlite3_close(db);
     return 0;
 }
