@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const newPasswordInput = document.getElementById("newPassword");
     const confirmPasswordInput = document.getElementById("confirmPassword");
     const messageDiv = document.getElementById("message");
+    const themeStylesheet = document.getElementById('theme-stylesheet'); // Get the stylesheet link
 
     const currentUser = sessionStorage.getItem('currentUser');
 
@@ -12,6 +13,29 @@ document.addEventListener("DOMContentLoaded", function () {
         window.location.href = 'login.html';
         return;
     }
+
+    // --- NEW: Theme Loading Logic ---
+    // This function applies the selected theme by changing the CSS file.
+    function applyTheme(themeName) {
+        themeStylesheet.href = `${themeName}.css`;
+    }
+
+    // Fetch the user's settings to apply the theme on page load.
+    if (currentUser !== 'guest') {
+        fetch(`/cgi-bin/search.cgi?get_settings=1&user=${encodeURIComponent(currentUser)}`)
+          .then(res => res.ok ? res.json() : { theme: 'light' }) // Default to light on error
+          .then(settings => {
+            if (settings && settings.theme) {
+                applyTheme(settings.theme);
+            }
+          })
+          .catch(err => {
+              console.error("Failed to load theme, defaulting to light.css", err);
+              applyTheme('light');
+          });
+    }
+    // --- End of new logic ---
+
 
     // Function to display messages
     function showMessage(message, type) {
