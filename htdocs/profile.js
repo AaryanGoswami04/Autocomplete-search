@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const newPasswordInput = document.getElementById("newPassword");
     const confirmPasswordInput = document.getElementById("confirmPassword");
     const messageDiv = document.getElementById("message");
-    const themeStylesheet = document.getElementById('theme-stylesheet'); // Get the stylesheet link
+    const themeStylesheet = document.getElementById('theme-stylesheet');
 
     const currentUser = sessionStorage.getItem('currentUser');
 
@@ -14,16 +14,14 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
-    // --- NEW: Theme Loading Logic ---
-    // This function applies the selected theme by changing the CSS file.
     function applyTheme(themeName) {
         themeStylesheet.href = `${themeName}.css`;
     }
 
-    // Fetch the user's settings to apply the theme on page load.
+   
     if (currentUser !== 'guest') {
         fetch(`/cgi-bin/search.cgi?get_settings=1&user=${encodeURIComponent(currentUser)}`)
-          .then(res => res.ok ? res.json() : { theme: 'light' }) // Default to light on error
+          .then(res => res.ok ? res.json() : { theme: 'light' })
           .then(settings => {
             if (settings && settings.theme) {
                 applyTheme(settings.theme);
@@ -34,8 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
               applyTheme('light');
           });
     }
-    // --- End of new logic ---
-
+  
 
     // Function to display messages
     function showMessage(message, type) {
@@ -46,7 +43,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 4000);
     }
 
-    // Function to fetch and display profile data
     function fetchProfileData() {
         fetch(`/cgi-bin/search.cgi?get_profile=1&user=${encodeURIComponent(currentUser)}`)
             .then(response => {
@@ -69,7 +65,6 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // Handle password change form submission
     passwordChangeForm.addEventListener("submit", function (e) {
         e.preventDefault();
         const newPassword = newPasswordInput.value;
@@ -96,7 +91,6 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(text => {
             showMessage(text, 'success');
             passwordChangeForm.reset();
-            // Refresh the displayed password
             fetchProfileData();
         })
         .catch(error => {
@@ -105,6 +99,5 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Initial data load
     fetchProfileData();
 });

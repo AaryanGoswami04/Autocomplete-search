@@ -234,22 +234,58 @@ int main() {
         return 0;
     }
 
+    // === (NEW) HANDLE DELETE HISTORY ITEM (POST) ===
+    if (method == "POST" && getQueryParam(queryStr, "delete_history") == "1") {
+        cout << "Content-Type: application/json\r\n\r\n";
+        
+        string history_id = getQueryParam(queryStr, "history_id");
+        
+        if (history_id.empty()) {
+            cout << "{\"success\":false,\"error\":\"Missing history_id parameter\"}";
+            return 0;
+        }
+
+        sqlite3* db;
+        int rc = -1;
+        if (sqlite3_open(DB_PATH.c_str(), &db) == SQLITE_OK) {
+            // Delete the specific history item for this user
+            string sql = "DELETE FROM search_history WHERE id = ? AND username = ?;";
+            sqlite3_stmt* stmt;
+            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) == SQLITE_OK) {
+                sqlite3_bind_int(stmt, 1, stoi(history_id));
+                sqlite3_bind_text(stmt, 2, user.c_str(), -1, SQLITE_STATIC);
+                rc = sqlite3_step(stmt);
+            }
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+        }
+
+        if (rc == SQLITE_DONE) {
+            cout << "{\"success\":true,\"message\":\"History item deleted successfully\"}";
+        } else {
+            cout << "{\"success\":false,\"error\":\"Failed to delete history item\"}";
+        }
+        return 0;
+    }
+
     // === HANDLE HISTORY REQUEST (GET) ===
     if (getQueryParam(queryStr, "history") == "1") {
         cout << "Content-Type: application/json\r\n\r\n";
         vector<string> jsonRows;
         sqlite3* db;
         if (sqlite3_open(DB_PATH.c_str(), &db) == SQLITE_OK) {
-            string sql = "SELECT search_term, timestamp FROM search_history WHERE username = ? ORDER BY timestamp DESC LIMIT 50;";
+            // Updated query to include the id field for deletion
+            string sql = "SELECT id, search_term, timestamp FROM search_history WHERE username = ? ORDER BY timestamp DESC LIMIT 50;";
             sqlite3_stmt* stmt;
             if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
                 sqlite3_bind_text(stmt, 1, user.c_str(), -1, SQLITE_STATIC);
                 while (sqlite3_step(stmt) == SQLITE_ROW) {
-                    const char* term_cstr = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-                    const char* time_cstr = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+                    int id = sqlite3_column_int(stmt, 0);
+                    const char* term_cstr = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+                    const char* time_cstr = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
                     string term = term_cstr ? term_cstr : "";
                     string time = time_cstr ? time_cstr : "";
-                    jsonRows.push_back("{\"search_term\":\"" + json_escape(term) + "\",\"timestamp\":\"" + json_escape(time) + "\"}");
+                    jsonRows.push_back("{\"id\":" + to_string(id) + ",\"search_term\":\"" + json_escape(term) + "\",\"timestamp\":\"" + json_escape(time) + "\"}");
                 }
             }
             sqlite3_finalize(stmt);
@@ -305,7 +341,7 @@ int main() {
     if (!query.empty()) {
         cout << "Content-Type: text/plain\r\n\r\n";
         vector<string> results;
-        vector<string> files_to_search;
+        string current_filename = "";
         sqlite3* db;
         int suggestions_limit = 10;
 
@@ -318,41 +354,53 @@ int main() {
             }
             sqlite3_finalize(pref_stmt);
 
-            string sql = "SELECT DISTINCT filename FROM uploads WHERE username = ? ORDER BY upload_time DESC;";
+            // Get only the most recently uploaded file for this user
+            string sql = "SELECT filename FROM uploads WHERE username = ? ORDER BY upload_time DESC LIMIT 1;";
             sqlite3_stmt* stmt;
             if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) == SQLITE_OK) {
                 sqlite3_bind_text(stmt, 1, user.c_str(), -1, SQLITE_STATIC);
-                while (sqlite3_step(stmt) == SQLITE_ROW) {
+                if (sqlite3_step(stmt) == SQLITE_ROW) {
                     const char* fname = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-                    if (fname) files_to_search.push_back(string(fname));
+                    if (fname) current_filename = string(fname);
                 }
             }
             sqlite3_finalize(stmt);
             sqlite3_close(db);
         }
 
-        string lowerQuery = query;
-        transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(), ::tolower);
-        vector<string> found_lines;
-        for (const auto& search_filename : files_to_search) {
-            ifstream infile("../uploaded/" + search_filename);
+        // Only search if there's a current file
+        if (!current_filename.empty()) {
+            string lowerQuery = query;
+            transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(), ::tolower);
+            vector<string> found_lines;
+            
+            ifstream infile("../uploaded/" + current_filename);
             string line;
             while (getline(infile, line)) {
                 line = trim(line);
                 if (line.empty()) continue;
+                
+                // Check if this line was already found
                 bool already_found = false;
-                for(const auto& found : found_lines) { if (found == line) { already_found = true; break; } }
+                for(const auto& found : found_lines) { 
+                    if (found == line) { 
+                        already_found = true; 
+                        break; 
+                    } 
+                }
                 if (already_found) continue;
+                
                 string lowerLine = line;
                 transform(lowerLine.begin(), lowerLine.end(), lowerLine.begin(), ::tolower);
                 if (lowerLine.find(lowerQuery) != string::npos) {
                     results.push_back(" - " + line);
                     found_lines.push_back(line);
-                    if (results.size() >= suggestions_limit) goto end_search;
+                    if (results.size() >= suggestions_limit) break;
                 }
             }
+            infile.close();
         }
-    end_search:
+
         for(const auto& res : results) { cout << res << "\n"; }
         return 0;
     }
