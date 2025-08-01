@@ -8,8 +8,86 @@
 #include <algorithm>
 #include <vector>
 #include <iomanip>
+#include <map> // Added for Trie
+#include <cctype> // Added for tolower
 
 using namespace std;
+
+// --- TRIE DATA STRUCTURE ---
+struct TrieNode {
+    map<char, TrieNode*> children;
+    bool isEndOfWord = false;
+};
+
+class Trie {
+    TrieNode* root;
+    // Stores the mapping from a lowercase word to its original cased version
+    map<string, string> originalWords; 
+
+    // Helper function to find all words from a given node
+    void dfs(TrieNode* node, string currentPrefix, vector<string>& results, int limit) {
+        if (results.size() >= limit) {
+            return;
+        }
+        if (node->isEndOfWord) {
+            // Use the map to retrieve the original word with its correct casing
+            if (originalWords.count(currentPrefix)) {
+                results.push_back(originalWords[currentPrefix]);
+            }
+        }
+        for (auto const& [key, val] : node->children) {
+            dfs(val, currentPrefix + key, results, limit);
+            if (results.size() >= limit) {
+                return;
+            }
+        }
+    }
+
+public:
+    Trie() { 
+        root = new TrieNode(); 
+    }
+
+    // Inserts a word into the trie
+    void insert(const string& word) {
+        if (word.empty()) return;
+
+        string lowerWord = word;
+        transform(lowerWord.begin(), lowerWord.end(), lowerWord.begin(), ::tolower);
+        
+        // Store the original word if this lowercase version isn't already mapped
+        if (originalWords.find(lowerWord) == originalWords.end()) {
+            originalWords[lowerWord] = word;
+        }
+
+        TrieNode* node = root;
+        for (char ch : lowerWord) {
+            if (node->children.find(ch) == node->children.end()) {
+                node->children[ch] = new TrieNode();
+            }
+            node = node->children[ch];
+        }
+        node->isEndOfWord = true;
+    }
+
+    // Returns a vector of suggestions for a given prefix
+    vector<string> suggest(const string& prefix, int limit) {
+        string lowerPrefix = prefix;
+        transform(lowerPrefix.begin(), lowerPrefix.end(), lowerPrefix.begin(), ::tolower);
+
+        TrieNode* node = root;
+        for (char ch : lowerPrefix) {
+            if (node->children.find(ch) == node->children.end()) {
+                return {}; // No suggestions found
+            }
+            node = node->children[ch];
+        }
+
+        vector<string> results;
+        dfs(node, lowerPrefix, results, limit);
+        return results;
+    }
+};
 
 // --- UTILITY FUNCTIONS ---
 string trim(const string &s) {
@@ -75,6 +153,19 @@ string join(const vector<string>& vec, const string& delim) {
         if (i < vec.size() - 1) ss << delim;
     }
     return ss.str();
+}
+
+// (NEW) Helper function to load words from a file into the Trie
+void loadWordsIntoTrie(const string& filename, Trie& trie) {
+    ifstream file(filename);
+    if (!file.is_open()) {
+        return; // Silently fail if file can't be opened
+    }
+    string word;
+    while (getline(file, word)) {
+        trie.insert(trim(word));
+    }
+    file.close();
 }
 
 
@@ -234,7 +325,7 @@ int main() {
         return 0;
     }
 
-    // === (NEW) HANDLE SAVING A SEARCH (POST) ===
+    // === HANDLE SAVING A SEARCH (POST) ===
     if (method == "POST" && getQueryParam(queryStr, "save_search") == "1") {
         cout << "Content-Type: application/json\r\n\r\n";
         string term_to_save = getQueryParam(queryStr, "term");
@@ -268,7 +359,7 @@ int main() {
         return 0;
     }
     
-    // === (NEW) HANDLE SAVED SEARCHES REQUEST (GET) ===
+    // === HANDLE SAVED SEARCHES REQUEST (GET) ===
     if (getQueryParam(queryStr, "get_saved") == "1") {
         cout << "Content-Type: application/json\r\n\r\n";
         vector<string> jsonRows;
@@ -294,7 +385,7 @@ int main() {
         return 0;
     }
 
-    // === (NEW) HANDLE DELETE SAVED SEARCH ITEM (POST) ===
+    // === HANDLE DELETE SAVED SEARCH ITEM (POST) ===
     if (method == "POST" && getQueryParam(queryStr, "delete_saved") == "1") {
         cout << "Content-Type: application/json\r\n\r\n";
         
@@ -341,7 +432,6 @@ int main() {
         sqlite3* db;
         int rc = -1;
         if (sqlite3_open(DB_PATH.c_str(), &db) == SQLITE_OK) {
-            // Delete the specific history item for this user
             string sql = "DELETE FROM search_history WHERE id = ? AND username = ?;";
             sqlite3_stmt* stmt;
             if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) == SQLITE_OK) {
@@ -367,7 +457,6 @@ int main() {
         vector<string> jsonRows;
         sqlite3* db;
         if (sqlite3_open(DB_PATH.c_str(), &db) == SQLITE_OK) {
-            // Updated query to include the id field for deletion
             string sql = "SELECT id, search_term, timestamp FROM search_history WHERE username = ? ORDER BY timestamp DESC LIMIT 50;";
             sqlite3_stmt* stmt;
             if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
@@ -430,71 +519,51 @@ int main() {
         return 0;
     }
     
-    // === HANDLE AUTOCOMPLETE SUGGESTIONS (GET) ===
+    // === (MODIFIED) HANDLE AUTOCOMPLETE SUGGESTIONS (GET) USING TRIE ===
     if (!query.empty()) {
         cout << "Content-Type: text/plain\r\n\r\n";
-        vector<string> results;
+        
         string current_filename = "";
         sqlite3* db;
         int suggestions_limit = 10;
 
+        // 1. Get user's suggestion limit and most recent filename from the database
         if (sqlite3_open(DB_PATH.c_str(), &db) == SQLITE_OK) {
             string pref_sql = "SELECT suggestions_count FROM user_preferences WHERE username = ?;";
             sqlite3_stmt* pref_stmt;
             if (sqlite3_prepare_v2(db, pref_sql.c_str(), -1, &pref_stmt, 0) == SQLITE_OK) {
                 sqlite3_bind_text(pref_stmt, 1, user.c_str(), -1, SQLITE_STATIC);
-                if (sqlite3_step(pref_stmt) == SQLITE_ROW) { suggestions_limit = sqlite3_column_int(pref_stmt, 0); }
+                if (sqlite3_step(pref_stmt) == SQLITE_ROW) { 
+                    suggestions_limit = sqlite3_column_int(pref_stmt, 0); 
+                }
             }
             sqlite3_finalize(pref_stmt);
 
-            // Get only the most recently uploaded file for this user
-            string sql = "SELECT filename FROM uploads WHERE username = ? ORDER BY upload_time DESC LIMIT 1;";
-            sqlite3_stmt* stmt;
-            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) == SQLITE_OK) {
-                sqlite3_bind_text(stmt, 1, user.c_str(), -1, SQLITE_STATIC);
-                if (sqlite3_step(stmt) == SQLITE_ROW) {
-                    const char* fname = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            string file_sql = "SELECT filename FROM uploads WHERE username = ? ORDER BY upload_time DESC LIMIT 1;";
+            sqlite3_stmt* file_stmt;
+            if (sqlite3_prepare_v2(db, file_sql.c_str(), -1, &file_stmt, 0) == SQLITE_OK) {
+                sqlite3_bind_text(file_stmt, 1, user.c_str(), -1, SQLITE_STATIC);
+                if (sqlite3_step(file_stmt) == SQLITE_ROW) {
+                    const char* fname = reinterpret_cast<const char*>(sqlite3_column_text(file_stmt, 0));
                     if (fname) current_filename = string(fname);
                 }
             }
-            sqlite3_finalize(stmt);
+            sqlite3_finalize(file_stmt);
             sqlite3_close(db);
         }
 
-        // Only search if there's a current file
+        // 2. If a file exists, load it into the Trie and get suggestions
         if (!current_filename.empty()) {
-            string lowerQuery = query;
-            transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(), ::tolower);
-            vector<string> found_lines;
+            Trie trie;
+            loadWordsIntoTrie("../uploaded/" + current_filename, trie);
             
-            ifstream infile("../uploaded/" + current_filename);
-            string line;
-            while (getline(infile, line)) {
-                line = trim(line);
-                if (line.empty()) continue;
-                
-                // Check if this line was already found
-                bool already_found = false;
-                for(const auto& found : found_lines) { 
-                    if (found == line) { 
-                        already_found = true; 
-                        break; 
-                    } 
-                }
-                if (already_found) continue;
-                
-                string lowerLine = line;
-                transform(lowerLine.begin(), lowerLine.end(), lowerLine.begin(), ::tolower);
-                if (lowerLine.find(lowerQuery) != string::npos) {
-                    results.push_back(" - " + line);
-                    found_lines.push_back(line);
-                    if (results.size() >= suggestions_limit) break;
-                }
-            }
-            infile.close();
-        }
+            vector<string> results = trie.suggest(query, suggestions_limit);
 
-        for(const auto& res : results) { cout << res << "\n"; }
+            for(const auto& res : results) {
+                cout << " - " << res << "\n";
+            }
+        }
+        
         return 0;
     }
 
