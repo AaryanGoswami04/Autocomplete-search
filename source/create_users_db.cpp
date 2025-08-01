@@ -54,7 +54,7 @@ int main() {
         sqlite3_free(errMsg);
     }
 
-    // --- Create user_preferences table (NEW) ---
+    // --- Create user_preferences table ---
     const char *preferencesTableSQL = "CREATE TABLE IF NOT EXISTS user_preferences ("
                                       "username TEXT PRIMARY KEY,"
                                       "theme TEXT NOT NULL DEFAULT 'light',"
@@ -62,6 +62,21 @@ int main() {
                                       "FOREIGN KEY(username) REFERENCES users(username));";
 
     rc = sqlite3_exec(db, preferencesTableSQL, 0, 0, &errMsg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", errMsg);
+        sqlite3_free(errMsg);
+    }
+    
+    // --- (NEW) Create saved_searches table ---
+    const char *savedSearchesTableSQL = "CREATE TABLE IF NOT EXISTS saved_searches ("
+                                     "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                     "username TEXT NOT NULL,"
+                                     "search_term TEXT NOT NULL,"
+                                     "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                                     "UNIQUE(username, search_term)," // Prevent duplicates for the same user
+                                     "FOREIGN KEY(username) REFERENCES users(username));";
+
+    rc = sqlite3_exec(db, savedSearchesTableSQL, 0, 0, &errMsg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", errMsg);
         sqlite3_free(errMsg);

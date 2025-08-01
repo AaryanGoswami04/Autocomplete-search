@@ -94,7 +94,7 @@ int main() {
 
     // --- ROUTER: Direct traffic based on request type ---
 
-    // === (NEW) HANDLE PROFILE DATA REQUEST ===
+    // === HANDLE PROFILE DATA REQUEST ===
     if (getQueryParam(queryStr, "get_profile") == "1") {
         cout << "Content-Type: application/json\r\n\r\n";
         string password = "";
@@ -115,7 +115,7 @@ int main() {
         return 0;
     }
 
-    // === (NEW) HANDLE PASSWORD UPDATE (POST) ===
+    // === HANDLE PASSWORD UPDATE (POST) ===
     if (method == "POST" && getQueryParam(queryStr, "update_password") == "1") {
         cout << "Content-Type: text/plain\r\n\r\n";
         string newPassword;
@@ -234,7 +234,100 @@ int main() {
         return 0;
     }
 
-    // === (NEW) HANDLE DELETE HISTORY ITEM (POST) ===
+    // === (NEW) HANDLE SAVING A SEARCH (POST) ===
+    if (method == "POST" && getQueryParam(queryStr, "save_search") == "1") {
+        cout << "Content-Type: application/json\r\n\r\n";
+        string term_to_save = getQueryParam(queryStr, "term");
+
+        if (user.empty() || term_to_save.empty()) {
+            cout << "{\"success\":false,\"error\":\"Missing user or term parameter\"}";
+            return 0;
+        }
+
+        sqlite3* db;
+        sqlite3_open(DB_PATH.c_str(), &db);
+        string sql = "INSERT OR IGNORE INTO saved_searches (username, search_term) VALUES (?, ?);";
+        sqlite3_stmt* stmt;
+        if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) == SQLITE_OK) {
+            sqlite3_bind_text(stmt, 1, user.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 2, term_to_save.c_str(), -1, SQLITE_STATIC);
+            if (sqlite3_step(stmt) == SQLITE_DONE) {
+                 if (sqlite3_changes(db) > 0) {
+                    cout << "{\"success\":true,\"message\":\"Search saved successfully\"}";
+                 } else {
+                    cout << "{\"success\":true,\"message\":\"Search was already saved\"}";
+                 }
+            } else {
+                cout << "{\"success\":false,\"error\":\"Failed to save search\"}";
+            }
+        } else {
+             cout << "{\"success\":false,\"error\":\"SQL preparation failed\"}";
+        }
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return 0;
+    }
+    
+    // === (NEW) HANDLE SAVED SEARCHES REQUEST (GET) ===
+    if (getQueryParam(queryStr, "get_saved") == "1") {
+        cout << "Content-Type: application/json\r\n\r\n";
+        vector<string> jsonRows;
+        sqlite3* db;
+        if (sqlite3_open(DB_PATH.c_str(), &db) == SQLITE_OK) {
+            string sql = "SELECT id, search_term, timestamp FROM saved_searches WHERE username = ? ORDER BY timestamp DESC;";
+            sqlite3_stmt* stmt;
+            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+                sqlite3_bind_text(stmt, 1, user.c_str(), -1, SQLITE_STATIC);
+                while (sqlite3_step(stmt) == SQLITE_ROW) {
+                    int id = sqlite3_column_int(stmt, 0);
+                    const char* term_cstr = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+                    const char* time_cstr = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+                    string term = term_cstr ? term_cstr : "";
+                    string time = time_cstr ? time_cstr : "";
+                    jsonRows.push_back("{\"id\":" + to_string(id) + ",\"search_term\":\"" + json_escape(term) + "\",\"timestamp\":\"" + json_escape(time) + "\"}");
+                }
+            }
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+        }
+        cout << "[" << join(jsonRows, ",") << "]";
+        return 0;
+    }
+
+    // === (NEW) HANDLE DELETE SAVED SEARCH ITEM (POST) ===
+    if (method == "POST" && getQueryParam(queryStr, "delete_saved") == "1") {
+        cout << "Content-Type: application/json\r\n\r\n";
+        
+        string saved_id = getQueryParam(queryStr, "saved_id");
+        
+        if (saved_id.empty()) {
+            cout << "{\"success\":false,\"error\":\"Missing saved_id parameter\"}";
+            return 0;
+        }
+
+        sqlite3* db;
+        int rc = -1;
+        if (sqlite3_open(DB_PATH.c_str(), &db) == SQLITE_OK) {
+            string sql = "DELETE FROM saved_searches WHERE id = ? AND username = ?;";
+            sqlite3_stmt* stmt;
+            if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) == SQLITE_OK) {
+                sqlite3_bind_int(stmt, 1, stoi(saved_id));
+                sqlite3_bind_text(stmt, 2, user.c_str(), -1, SQLITE_STATIC);
+                rc = sqlite3_step(stmt);
+            }
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+        }
+
+        if (rc == SQLITE_DONE) {
+            cout << "{\"success\":true,\"message\":\"Saved search deleted successfully\"}";
+        } else {
+            cout << "{\"success\":false,\"error\":\"Failed to delete saved search\"}";
+        }
+        return 0;
+    }
+
+    // === HANDLE DELETE HISTORY ITEM (POST) ===
     if (method == "POST" && getQueryParam(queryStr, "delete_history") == "1") {
         cout << "Content-Type: application/json\r\n\r\n";
         

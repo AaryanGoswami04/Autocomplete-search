@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Saved Searches</title>
+  <link id="theme-stylesheet" rel="stylesheet" href="light.css">
+</head>
+<body>
+  <div class="title-bar">
+    <div class="nav-buttons">
+       <button class="back-btn" onclick="window.location.href='index.html'">← Back</button>
+    </div>
+    <span class="title-text">Saved Searches</span>
+  </div>
+
+  <div class="container">
+    <div class="dashboard-section">
+      <h2>Your Bookmarked Searches</h2>
+      <div id="loading-message" class="loading-message">🔍 Loading your saved searches...</div>
+      <div id="error-message" class="error-message" style="display: none;"></div>
+      <ul id="saved-list" class="saved-searches">
+        <!-- Saved searches will be populated here by JS -->
+      </ul>
+      <div id="empty-message" class="no-history-message" style="display: none;">No saved searches found.</div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const savedList = document.getElementById("saved-list");
+        const loadingMessage = document.getElementById("loading-message");
+        const emptyMessage = document.getElementById("empty-message");
+        const errorMessage = document.getElementById("error-message");
+
+        const username = sessionStorage.getItem('currentUser') || 'guest';
+
+        // --- Apply Theme on Load ---
+        function applyTheme() {
+            if (username !== 'guest') {
+                fetch(`/cgi-bin/search.cgi?get_settings=1&user=${username}`)
+                  .then(res => res.ok ? res.json() : { theme: 'light' })
+                  .then(settings => {
+                    document.getElementById('theme-stylesheet').href = `${settings.theme}.css`;
+                  })
+                  .catch(err => {
+                    console.error("Failed to load theme, defaulting to light.css", err);
+                    document.getElementById('theme-stylesheet').href = 'light.css';
+                  });
+            }
+        }
+        
+        function fetchSavedSearches() {
+            if (username === 'guest') {
+                loadingMessage.style.display = 'none';
+                errorMessage.innerHTML = '🔒 You must be logged in to view saved searches.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            const url = `/cgi-bin/search.cgi?get_saved=1&user=${encodeURIComponent(username)}`;
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    loadingMessage.style.display = 'none';
+                    savedList.innerHTML = ''; // Clear previous items
+
+                    if (data.length === 0) {
+                        emptyMessage.style.display = 'block';
+                    } else {
+                        emptyMessage.style.display = 'none';
+                        data.forEach(item => {
+                            const li = document.createElement("li");
+                            li.className = 'saved-item';
+                            li.dataset.id = item.id;
+
+                            const termDiv = document.createElement('div');
+                            const termSpan = document.createElement('span');
+                            termSpan.className = 'saved-term';
+                            termSpan.textContent = item.search_term;
+                            const timeSpan = document.createElement('span');
+                            timeSpan.className = 'saved-timestamp';
+                            timeSpan.textContent = new Date(item.timestamp).toLocaleString();
+                            termDiv.appendChild(termSpan);
+                            termDiv.appendChild(document.createElement('br'));
+                            termDiv.appendChild(timeSpan);
+
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.textContent = 'Delete';
+                            deleteBtn.className = 'delete-btn';
+                            deleteBtn.onclick = () => deleteSavedSearch(item.id);
+                            
+                            li.appendChild(termDiv);
+                            li.appendChild(deleteBtn);
+                            savedList.appendChild(li);
+                        });
+                    }
+                })
+                .catch(error => {
+                    loadingMessage.style.display = 'none';
+                    errorMessage.innerHTML = `❌ Error fetching saved searches: ${error.message}`;
+                    errorMessage.style.display = 'block';
+                    console.error("Error fetching saved searches:", error);
+                });
+        }
+
+        function deleteSavedSearch(savedId) {
+            const url = `/cgi-bin/search.cgi?delete_saved=1&user=${encodeURIComponent(username)}&saved_id=${savedId}`;
+
+            fetch(url, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const itemToRemove = document.querySelector(`.saved-item[data-id='${savedId}']`);
+                        if (itemToRemove) {
+                            itemToRemove.style.transform = 'translateX(-100%)';
+                            itemToRemove.style.opacity = '0';
+                            setTimeout(() => {
+                                itemToRemove.remove();
+                                if (savedList.children.length === 0) emptyMessage.style.display = 'block';
+                            }, 300);
+                        }
+                    } else {
+                        alert('Failed to delete: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting saved search:', error);
+                    alert('An error occurred during deletion.');
+                });
+        }
+
+        applyTheme();
+        fetchSavedSearches();
+    });
+  </script>
+</body>
+</html>

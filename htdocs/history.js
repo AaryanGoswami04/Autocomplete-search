@@ -30,9 +30,9 @@ document.addEventListener("DOMContentLoaded", function () {
     historyCountElement.textContent = "Error loading count";
   }
 
-  function showNoHistory() {
+   function showNoHistory() {
     searchHistoryElement.innerHTML = '<div class="no-history-message">No search history found.</div>';
-    historyCountElement.textContent = "0 searches recorded";
+    historyCountElement.textContent = "";
   }
 
   function showConfirmation(title, message, onConfirm) {

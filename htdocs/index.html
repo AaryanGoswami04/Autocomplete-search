@@ -21,7 +21,16 @@
     </div>
 
     <div class="search-wrapper">
-      <input type="text" id="searchBox" placeholder="Type to search..." autocomplete="off" />
+      <div class="search-container">
+        <div class="search-input-container">
+          <input type="text" id="searchBox" placeholder="Type to search..." autocomplete="off" />
+        </div>
+        <button id="saveSearchButton" class="save-search-icon" style="display: none;" title="Save search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </button>
+      </div>
       <ul id="suggestions"></ul>
     </div>
 
@@ -29,13 +38,13 @@
       <p>Start typing to see autocomplete suggestions. Your search history will be saved automatically.</p>
       <p>
         <a href="history.html" class="history-link">View your search history →</a><br>
-        <a href="uploads.html" class="history-link">View your uploaded files →</a>
+        <a href="uploads.html" class="history-link">View your uploaded files →</a><br>
+        <a href="saved_searches.html" class="history-link">View your saved searches →</a>
       </p>
     </div>
   </div>
 
   <script>
-    // This script now also loads the user's theme preference
     window.onload = () => {
       document.getElementById("wordFile").value = "";
       
@@ -47,13 +56,11 @@
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      // --- Apply Theme on Load ---
       const username = sessionStorage.getItem('currentUser') || 'guest';
       if (username !== 'guest') {
         fetch(`/cgi-bin/search.cgi?get_settings=1&user=${username}`)
-          .then(res => res.ok ? res.json() : { theme: 'light' }) // Default to light on error
+          .then(res => res.ok ? res.json() : { theme: 'light' })
           .then(settings => {
-            // Assumes theme CSS files are named 'light.css', 'dark.css', etc.
             document.getElementById('theme-stylesheet').href = `${settings.theme}.css`;
           })
           .catch(err => {
@@ -63,6 +70,6 @@
       }
     };
   </script>
-  <script src="script.js?v=1"></script>
+  <script src="script.js?v=4"></script>
 </body>
 </html>

@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const searchBox = document.getElementById("searchBox");
   const suggestions = document.getElementById("suggestions");
   const uploadInput = document.getElementById("wordFile");
+  const saveSearchButton = document.getElementById("saveSearchButton");
 
   // Username handling
   const urlParams = new URLSearchParams(window.location.search);
@@ -19,41 +20,25 @@ document.addEventListener("DOMContentLoaded", function () {
   if (uploadInput) {
     uploadInput.addEventListener("change", function () {
       const file = this.files[0];
-      if (!file) {
-        console.log("[script-simplified.js] No file selected.");
-        return;
-      }
-
-      console.log("[script-simplified.js] Uploading file:", file.name, "size:", file.size);
+      if (!file) return;
 
       const reader = new FileReader();
       reader.onload = function (e) {
         const fileContent = e.target.result;
-        const uploadUrl = "/cgi-bin/search.cgi";
-        const fullUrl = `${uploadUrl}?user=${encodeURIComponent(currentUsername)}&filename=${encodeURIComponent(file.name)}`;
-
-        console.log("[script-simplified.js] POST to:", fullUrl);
+        const fullUrl = `/cgi-bin/search.cgi?user=${encodeURIComponent(currentUsername)}&filename=${encodeURIComponent(file.name)}`;
 
         fetch(fullUrl, {
           method: "POST",
           body: fileContent,
           headers: { "Content-Type": "text/plain;charset=UTF-8" }
         })
-          .then(response => {
-            console.log("[script-simplified.js] Upload response status:", response.status, response.statusText);
-            return response.text();
-          })
-          .then(text => {
-            console.log("[script-simplified.js] Upload response:", text);
-           // alert("File uploaded successfully!");
-          })
+          .then(response => response.text())
+          .then(text => console.log("[script.js] Upload response:", text))
           .catch(err => {
-            console.error("[script-simplified.js] Upload error:", err);
+            console.error("[script.js] Upload error:", err);
             alert("Upload failed: " + err.message);
           });
       };
-
-      reader.onerror = (e) => console.error("[script-simplified.js] FileReader error:", e);
       reader.readAsText(file);
     });
   }
@@ -61,6 +46,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // Search Autocomplete Handler
   searchBox.addEventListener("input", function () {
     const query = searchBox.value.trim();
+    saveSearchButton.style.display = 'none';
+    saveSearchButton.classList.remove('saved'); // Reset icon style
 
     if (query.length === 0) {
       suggestions.innerHTML = "";
@@ -70,18 +57,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const username = currentUsername || "guest";
     const searchUrl = `/cgi-bin/search.cgi?query=${encodeURIComponent(query)}&user=${encodeURIComponent(username)}&log=0`;
 
-    console.log("[script-simplified.js] Search request:", searchUrl);
-
     fetch(searchUrl)
-      .then(response => {
-        console.log("[script-simplified.js] Search response status:", response.status, response.statusText);
-        return response.text();
-      })
+      .then(response => response.text())
       .then(data => {
         suggestions.innerHTML = "";
-
         const lines = data.split("\n").filter(line => line.startsWith(" - "));
-        console.log("[script-simplified.js] Found", lines.length, "suggestions for:", query);
 
         lines.forEach(line => {
           const item = document.createElement("li");
@@ -89,30 +69,45 @@ document.addEventListener("DOMContentLoaded", function () {
 
           item.addEventListener("click", () => {
             const chosen = item.textContent;
-            console.log("[script-simplified.js] Suggestion clicked:", chosen);
-
             searchBox.value = chosen;
             suggestions.innerHTML = "";
 
-            // Log the click
+            // (MODIFIED) Show the icon and ensure it's in the default state
+            saveSearchButton.style.display = 'block';
+            saveSearchButton.disabled = false;
+            saveSearchButton.classList.remove('saved');
+
             const clickUrl = `/cgi-bin/search.cgi?query=${encodeURIComponent(chosen)}&user=${encodeURIComponent(username)}&log=1`;
-            console.log("[script-simplified.js] Logging click:", clickUrl);
-
-            fetch(clickUrl)
-              .then(r => r.text())
-              .then(t => {
-                console.log("[script-simplified.js] Click logged successfully, response:", t);
-              })
-              .catch(err => {
-                console.error("[script-simplified.js] Click log error:", err);
-              });
+            fetch(clickUrl).catch(err => console.error("[script.js] Click log error:", err));
           });
-
           suggestions.appendChild(item);
         });
       })
-      .catch(error => {
-        console.error("[script-simplified.js] Search error:", error);
+      .catch(error => console.error("[script.js] Search error:", error));
+  });
+
+  // Event listener for the save icon button
+  saveSearchButton.addEventListener('click', function() {
+    const termToSave = searchBox.value.trim();
+    if (!termToSave) return;
+
+    const username = currentUsername || "guest";
+    const saveUrl = `/cgi-bin/search.cgi?user=${encodeURIComponent(username)}&term=${encodeURIComponent(termToSave)}&save_search=1`;
+        
+    fetch(saveUrl, { method: "POST" })
+      .then(res => res.json())
+      .then(data => {
+        if(data.success) {
+          // (MODIFIED) Add 'saved' class to change icon style and disable it
+          saveSearchButton.classList.add('saved');
+          saveSearchButton.disabled = true;
+        } else {
+          alert('Failed to save search: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(err => {
+        console.error("[script.js] Save error:", err);
+        alert('An error occurred while saving.');
       });
   });
 
@@ -121,22 +116,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (e.key === "Enter") {
       const term = searchBox.value.trim();
       if (!term) return;
-
-      console.log("[script-simplified.js] Enter pressed with term:", term);
-
       const username = currentUsername || "guest";
       const enterUrl = `/cgi-bin/search.cgi?query=${encodeURIComponent(term)}&user=${encodeURIComponent(username)}&log=1`;
-
-      console.log("[script-simplified.js] Logging enter search:", enterUrl);
-
-      fetch(enterUrl)
-        .then(r => r.text())
-        .then(t => {
-          console.log("[script-simplified.js] Enter search logged successfully, response:", t);
-        })
-        .catch(err => {
-          console.error("[script-simplified.js] Enter log error:", err);
-        });
+      fetch(enterUrl).catch(err => console.error("[script.js] Enter log error:", err));
     }
   });
 
@@ -153,12 +135,4 @@ document.addEventListener("DOMContentLoaded", function () {
       suggestions.innerHTML = "";
     }
   });
-
-  // Debug function
-  window.debugUser = function() {
-    console.log("Current username:", currentUsername);
-    console.log("SessionStorage user:", sessionStorage.getItem('currentUser'));
-  };
-
-  console.log("[script-simplified.js] Initialization complete");
 });

@@ -36,11 +36,11 @@ body {
 .nav-buttons {
   display: flex;
   gap: 0.5rem;
-  flex: 1; /* Allows buttons to take up space */
+  flex: 1;
 }
 
 .nav-buttons:last-child {
-  justify-content: flex-end; /* Pushes buttons to the right */
+  justify-content: flex-end;
 }
 
 .nav-btn, .logout-btn, .back-btn {
@@ -80,7 +80,7 @@ body {
   padding: 1.5rem;
 }
 
-/* --- INDEX.HTML STYLES (REFACTORED) --- */
+/* --- INDEX.HTML STYLES --- */
 .upload-section {
   margin-bottom: 2rem;
 }
@@ -92,11 +92,27 @@ body {
   background: #f7fafc;
   cursor: pointer;
 }
+
 .search-wrapper {
   position: relative;
   margin-bottom: 2rem;
-  z-index: 2; /* Ensures suggestions appear above content below */
+  z-index: 2;
 }
+
+/* New search container to hold both input and button side by side */
+.search-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  position: relative;
+}
+
+/* Container for the input (now takes available space) */
+.search-input-container {
+  position: relative;
+  flex: 1;
+}
+
 #searchBox {
   width: 100%;
   padding: 1rem 1.5rem;
@@ -104,11 +120,67 @@ body {
   border: none;
   border-radius: 12px;
   outline: none;
-  /* Searchbox itself is now the white box */
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 }
+
+#searchBox:focus {
+  box-shadow: 0 4px 25px rgba(102, 126, 234, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Save search button positioned to the right of search bar */
+.save-search-icon {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  color: #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 52px;
+}
+
+.save-search-icon:hover {
+  background: rgba(102, 126, 234, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.15);
+}
+
+.save-search-icon.saved {
+  background: #667eea;
+  color: white;
+}
+
+.save-search-icon.saved:hover {
+  background: #5a67d8;
+}
+
+.save-search-icon:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.save-search-icon svg {
+  transition: transform 0.2s ease;
+}
+
+.save-search-icon:hover svg {
+  transform: scale(1.1);
+}
+
+.save-search-icon.saved svg {
+  fill: currentColor;
+}
+
 #suggestions {
   position: absolute;
   top: 100%;
@@ -122,27 +194,41 @@ body {
   list-style: none;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
 }
+
 #suggestions li {
   padding: 0.75rem 1.5rem;
   cursor: pointer;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
 }
+
 #suggestions li:hover {
   background: rgba(102, 126, 234, 0.1);
   color: #667eea;
 }
+
+#suggestions li:last-child {
+  border-bottom: none;
+}
+
 .quick-stats {
   margin-top: 2rem;
   text-align: center;
   color: #4a5568;
   position: relative;
-  z-index: 1; /* Ensures it stays below suggestions */
+  z-index: 1;
 }
 .history-link {
   color: #667eea;
   text-decoration: none;
   font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.history-link:hover {
+  color: #5a67d8;
 }
 
 /* --- SETTINGS.HTML STYLES --- */
@@ -169,20 +255,170 @@ body {
 #message { margin: 1rem auto 0; max-width: 600px; padding: 0.75rem; border-radius: 6px; font-weight: 500; text-align: center; opacity: 0; transition: opacity 0.3s ease; }
 #message.visible { opacity: 1; background-color: rgba(102, 126, 234, 0.1); color: #5a67d8; }
 
-/* --- HISTORY & UPLOADS STYLES --- */
-.search-history, #uploadList { list-style: none; padding: 0; }
-.history-item, .upload-item {
+/* --- REFINED SAVED SEARCHES STYLES --- */
+.saved-searches, .search-history, #uploadList { 
+  list-style: none; 
+  padding: 0; 
+  margin: 0;
+}
+
+.saved-item, .history-item, .upload-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 1.25rem;
+  margin-bottom: 0.75rem;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-.history-item:last-child, .upload-item:last-child { border-bottom: none; }
-.history-item:hover, .upload-item:hover { background: rgba(102, 126, 234, 0.1); border-radius: 6px; }
-.search-term, .upload-name { font-weight: 600; }
-.search-timestamp, .upload-time { font-size: 0.9rem; color: #718096; }
-.history-stats { font-weight: 600; color: #4a5568; margin-bottom: 1rem; }
-.action-btn { background: #667eea; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
-.history-actions { margin-top: 1.5rem; text-align: center; }
-.empty-message, .error-message, .loading-message { padding: 1rem; text-align: center; font-style: italic; color: #718096; }
+
+.saved-item:hover, .history-item:hover, .upload-item:hover { 
+  background: rgba(102, 126, 234, 0.08);
+  border-color: rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+}
+
+.saved-item:last-child, .history-item:last-child, .upload-item:last-child { 
+  margin-bottom: 0; 
+}
+
+.saved-term, .search-term, .upload-name { 
+  font-weight: 600; 
+  font-size: 1.1rem;
+  color: #4a5568;
+  margin-bottom: 0.25rem;
+}
+
+.saved-timestamp, .search-timestamp, .upload-time { 
+  font-size: 0.85rem; 
+  color: #718096; 
+}
+
+.history-stats { 
+  font-weight: 600; 
+  color: #4a5568; 
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.action-btn { 
+  background: #667eea; 
+  color: white; 
+  border: none; 
+  padding: 0.5rem 1rem; 
+  border-radius: 8px; 
+  cursor: pointer; 
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.action-btn:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+}
+
+/* Delete button styling to match history.html */
+.delete-btn {
+  background: #ff4757;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 12px;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.delete-btn:hover {
+  background: #ff3742;
+}
+
+.delete-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.action-btn.search-btn {
+  background: #38a169;
+}
+
+.action-btn.search-btn:hover {
+  background: #2f855a;
+}
+
+.history-actions { 
+  margin-top: 1.5rem; 
+  text-align: center; 
+}
+
+.empty-message, .error-message, .loading-message, .no-history-message { 
+  padding: 2rem; 
+  text-align: center; 
+  font-style: italic; 
+  color: #718096;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  border: 2px dashed #cbd5e0;
+}
+
+.empty-message {
+  color: #4a5568;
+}
+
+.error-message {
+  color: #e53e3e;
+  background: rgba(229, 62, 62, 0.1);
+  border-color: rgba(229, 62, 62, 0.2);
+}
+
+.loading-message {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+  border-color: rgba(102, 126, 234, 0.2);
+}
+
+/* Responsive design improvements */
+@media (max-width: 640px) {
+  .search-container {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .save-search-icon {
+    align-self: flex-end;
+    min-width: 48px;
+    height: 48px;
+  }
+  
+  .saved-item, .history-item, .upload-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .history-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .action-btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+}
