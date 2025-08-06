@@ -10,7 +10,6 @@ using namespace std;
 void printHeader() {
     cout << "Content-type: text/html\r\n\r\n";
 }
-
 // URL decode function to handle special characters in POST data
 string urlDecode(const string& str) {
     string decoded;
@@ -28,8 +27,7 @@ string urlDecode(const string& str) {
     }
     return decoded;
 }
-
-string getValue(const string &data, const string &key) {
+string getValue(const string &data, const string &key) { 
     size_t start = data.find(key + "=");
     if (start == string::npos) return "";
     start += key.length() + 1;
@@ -37,23 +35,6 @@ string getValue(const string &data, const string &key) {
     if (end == string::npos) end = data.length();
     return urlDecode(data.substr(start, end - start));
 }
-
-void insertSampleUser(sqlite3 *db) {
-    const char* sql_check = "SELECT COUNT(*) FROM users;";
-    sqlite3_stmt *stmt;
-    if (sqlite3_prepare_v2(db, sql_check, -1, &stmt, nullptr) == SQLITE_OK) {
-        if (sqlite3_step(stmt) == SQLITE_ROW && sqlite3_column_int(stmt, 0) == 0) {
-            sqlite3_finalize(stmt);
-            const char* insert_sql = "INSERT INTO users (username, password) VALUES ('admin', 'admin123');";
-            char *errMsg = nullptr;
-            sqlite3_exec(db, insert_sql, 0, 0, &errMsg);
-            if (errMsg) sqlite3_free(errMsg);
-        } else {
-            sqlite3_finalize(stmt);
-        }
-    }
-}
-
 bool userExists(sqlite3 *db, const string& username) {
     const char* sql = "SELECT COUNT(*) FROM users WHERE username=?;";
     sqlite3_stmt *stmt;
@@ -65,8 +46,9 @@ bool userExists(sqlite3 *db, const string& username) {
     sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
     
     bool exists = false;
+    // Executes the query and checks if it returns a row of data.
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-        exists = sqlite3_column_int(stmt, 0) > 0;
+        exists = sqlite3_column_int(stmt, 0) > 0; // Gets the integer from the first column of the result. If the count is greater than 0, it means the user exists.
     }
     
     sqlite3_finalize(stmt);
@@ -93,6 +75,7 @@ bool registerUser(sqlite3 *db, const string& username, const string& password) {
     return success;
 }
 
+//Check is username and password exists in database
 bool loginUser(sqlite3 *db, const string& username, const string& password) {
     const char* sql = "SELECT * FROM users WHERE username=? AND password=?;";
     sqlite3_stmt *stmt;
@@ -101,11 +84,11 @@ bool loginUser(sqlite3 *db, const string& username, const string& password) {
         return false;
     }
     
-    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC); 
+    sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC); // Bind password
     
     bool success = sqlite3_step(stmt) == SQLITE_ROW;
-    sqlite3_finalize(stmt);
+    sqlite3_finalize(stmt); 
     return success;
 }
 
@@ -222,23 +205,23 @@ void printModernResponse(const string& title, const string& message, const strin
 int main() {
     printHeader();
 
-    char *lenstr = getenv("CONTENT_LENGTH");
+    char *lenstr = getenv("CONTENT_LENGTH"); // Get the length of the POST data
     if (!lenstr) {
         printModernResponse("Error", "No data received.", "error");
         return 0;
     }
 
-    int len = atoi(lenstr);
-    string postData(len, 0);
-    cin.read(&postData[0], len);
+    int len = atoi(lenstr); // Convert length to integer
+    string postData(len, 0);   // Create a string to hold the POST data
+    cin.read(&postData[0], len); // Read the POST data into the string
 
-    string action = getValue(postData, "action");
+    string action = getValue(postData, "action"); // Get the action (register or login)
     string username = getValue(postData, "username");
     string password = getValue(postData, "password");
     string confirmPassword = getValue(postData, "confirm_password");
 
     if (username.empty() || password.empty()) {
-        printModernResponse("Error", "Username and password are required.", "error");
+        printModernResponse("Error", "Username and password are required.", "error"); 
         return 0;
     }
 
@@ -254,7 +237,6 @@ int main() {
         printModernResponse("Database Error", "Cannot connect to database.", "error");
         return 1;
     }
-
     // const char* create_table_sql = R"(
     //     CREATE TABLE IF NOT EXISTS users (
     //         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -263,17 +245,6 @@ int main() {
     //         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     //     );
     // )";
-    
-    char *errMsg = nullptr;
-    if (sqlite3_exec(db, create_table_sql, 0, 0, &errMsg) != SQLITE_OK) {
-        printModernResponse("Database Error", "Failed to create users table.", "error");
-        sqlite3_free(errMsg);
-        sqlite3_close(db);
-        return 1;
-    }
-
-    insertSampleUser(db);
-
     if (action == "register") {
         if (password != confirmPassword) {
             printModernResponse("Registration Failed", "Passwords do not match.", "error");
