@@ -1,0 +1,57 @@
+# Start with the official Apache Web Server image
+FROM httpd:2.4
+
+# 1. INSTALL DEPENDENCIES
+# We need both gcc (for C) and g++ (for C++)
+RUN apt-get update && \
+    apt-get install -y gcc g++ libsqlite3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# 2. COPY YOUR PROJECT FILES
+# Copy your entire project into a temporary build directory in the container
+COPY . /app/
+WORKDIR /app/
+
+# 3. COMPILE YOUR CGI SCRIPTS (THE CORRECTED WAY)
+#
+# STEP A: Compile the C code (sqlite3.c) into an object file first.
+RUN gcc -c -o sqlite3.o ./sqlite/sqlite3.c -I./sqlite
+#
+# STEP B: Compile each C++ file and LINK it with the C object file (sqlite3.o).
+RUN g++ -o /usr/local/apache2/cgi-bin/search.cgi ./source/search.cpp sqlite3.o -I./sqlite -pthread
+RUN g++ -o /usr/local/apache2/cgi-bin/auth.cgi ./source/auth.cpp sqlite3.o -I./sqlite -pthread
+RUN g++ -o /usr/local/apache2/cgi-bin/create_users_db.cgi ./source/create_users_db.cpp sqlite3.o -I./sqlite -pthread
+
+# 4. SET UP THE WEB SERVER ENVIRONMENT
+# Copy your website files (HTML, CSS, JS) to Apache's web root
+COPY ./htdocs/ /usr/local/apache2/htdocs/
+
+# Copy your database files where your CGI scripts can find them (cgi-bin directory)
+COPY ./database/* /usr/local/apache2/cgi-bin/
+
+# Create the directory for user file uploads and set permissions
+RUN mkdir -p /usr/local/apache2/htdocs/uploaded && \
+    chmod 777 /usr/local/apache2/htdocs/uploaded
+
+# *** FIXED PERMISSION ISSUES FOR HUGGING FACE ***
+# Make logs directory writable by all users (Hugging Face runs as non-root)
+RUN chmod 777 /usr/local/apache2/logs
+
+# Configure Apache for Hugging Face Spaces (port 7860)
+RUN sed -i 's/Listen 80/Listen 7860/' /usr/local/apache2/conf/httpd.conf && \
+    echo "ServerName localhost" >> /usr/local/apache2/conf/httpd.conf && \
+    echo "PidFile /tmp/httpd.pid" >> /usr/local/apache2/conf/httpd.conf
+
+# Make the CGI scripts executable
+RUN chmod +x /usr/local/apache2/cgi-bin/*.cgi
+
+# 5. CONFIGURE APACHE
+# Enable the CGI module in Apache's configuration file
+RUN sed -i '/LoadModule cgi_module/s/^#//g' /usr/local/apache2/conf/httpd.conf && \
+    sed -i '/AddHandler cgi-script .cgi/s/^#//g' /usr/local/apache2/conf/httpd.conf
+
+# Hugging Face Spaces expects port 7860
+EXPOSE 7860
+
+# Run Apache in foreground mode (required for containers)
+CMD ["httpd-foreground"]

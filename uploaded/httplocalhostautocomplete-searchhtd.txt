@@ -1,0 +1,22 @@
+http://localhost/autocomplete-search/htdocs/index.html
+
+To run create_users_db. cpp:
+
+
+PS C:\xampp\htdocs\autocomplete-search> gcc -c sqlite/sqlite3.c -I sqlite -o sqlite/sqlite3.o
+PS C:\xampp\htdocs\autocomplete-search> g++ -c source/create_users_db.cpp -I sqlite -o source/create_users_db.o
+PS C:\xampp\htdocs\autocomplete-search> g++ source/create_users_db.o sqlite/sqlite3.o -o create_users_db
+PS C:\xampp\htdocs\autocomplete-search> .\create_users_db
+
+g++ -c source/search.cpp -I sqlite -o source/search.o
+g++ source/search.o sqlite/sqlite3.o -o search
+g++ source/search.o sqlite/sqlite3.o -o search
+
+
+g++ -I sqlite -o cgi-bin/search.cgi source/search.cpp sqlite/sqlite3.o
+
+
+
+
+cd C:\xampp\htdocs\autocomplete-search\sqlite
+sqlite3 users.db

@@ -255,14 +255,14 @@ int main() {
         return 1;
     }
 
-    const char* create_table_sql = R"(
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    )";
+    // const char* create_table_sql = R"(
+    //     CREATE TABLE IF NOT EXISTS users (
+    //         id INTEGER PRIMARY KEY AUTOINCREMENT,
+    //         username TEXT UNIQUE NOT NULL,
+    //         password TEXT NOT NULL,
+    //         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    //     );
+    // )";
     
     char *errMsg = nullptr;
     if (sqlite3_exec(db, create_table_sql, 0, 0, &errMsg) != SQLITE_OK) {

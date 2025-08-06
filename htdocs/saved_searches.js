@@ -3,20 +3,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const loadingMessage = document.getElementById("loading-message");
     const emptyMessage = document.getElementById("empty-message");
     const errorMessage = document.getElementById("error-message");
-
     const username = sessionStorage.getItem('currentUser') || 'guest';
-
     // --- Apply Theme on Load ---
     function applyTheme() {
         if (username !== 'guest') {
             fetch(`/cgi-bin/search.cgi?get_settings=1&user=${username}`)
-              .then(res => res.ok ? res.json() : { theme: 'light' })
+              .then(res => res.json())
               .then(settings => {
                 document.getElementById('theme-stylesheet').href = `${settings.theme}.css`;
-              })
-              .catch(err => {
-                console.error("Failed to load theme, defaulting to light.css", err);
-                document.getElementById('theme-stylesheet').href = 'light.css';
               });
         }
     }
@@ -32,10 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const url = `/cgi-bin/search.cgi?get_saved=1&user=${encodeURIComponent(username)}`;
 
         fetch(url)
-            .then(response => {
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 loadingMessage.style.display = 'none';
                 savedList.innerHTML = ''; // Clear previous items
@@ -82,21 +73,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         savedList.appendChild(li);
                     });
                 }
-            })
-            .catch(error => {
-                loadingMessage.style.display = 'none';
-                errorMessage.textContent = `Error fetching saved searches: ${error.message}`;
-                errorMessage.style.display = 'block';
-                console.error("Error fetching saved searches:", error);
             });
     }
 
     function deleteSavedSearch(savedId) {
-        // A simple confirmation dialog
-        if (!confirm('Are you sure you want to delete this saved search?')) {
-            return;
-        }
-
         const url = `/cgi-bin/search.cgi?delete_saved=1&user=${encodeURIComponent(username)}&saved_id=${savedId}`;
 
         fetch(url, { method: 'POST' })
@@ -106,16 +86,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     const itemToRemove = document.querySelector(`.saved-item[data-id='${savedId}']`);
                     if (itemToRemove) itemToRemove.remove();
                     if (savedList.children.length === 0) emptyMessage.style.display = 'block';
-                } else {
-                    alert('Failed to delete: ' + data.error);
                 }
-            })
-            .catch(error => {
-                console.error('Error deleting saved search:', error);
-                alert('An error occurred during deletion.');
             });
     }
-
     applyTheme();
     fetchSavedSearches();
 });

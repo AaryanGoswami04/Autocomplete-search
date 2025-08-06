@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const confirmationMessage = document.getElementById('confirmationMessage');
   const confirmYes = document.getElementById('confirmYes');
   const confirmNo = document.getElementById('confirmNo');
-
   const username = sessionStorage.getItem('currentUser') || "guest";
   let currentHistoryData = [];
 
@@ -16,16 +15,11 @@ document.addEventListener("DOMContentLoaded", function () {
       themeStylesheet.href = `${themeName}.css`;
     }
   }
-
   function showLoading() {
     searchHistoryElement.innerHTML = '';
   }
 
-  function showError(message) {
-    searchHistoryElement.innerHTML = `<div class="error-message">Error: ${message}</div>`;
-  }
-
-   function showNoHistory() {
+  function showNoHistory() {
     searchHistoryElement.innerHTML = '<div class="no-history-message">No search history found.</div>';
   }
 
@@ -64,10 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
         'Content-Type': 'application/x-www-form-urlencoded',
       }
     })
-    .then(response => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
       if (data.success) {
         historyItem.style.transition = 'all 0.3s ease';
@@ -83,17 +74,6 @@ document.addEventListener("DOMContentLoaded", function () {
             showNoHistory();
           }
         }, 300);
-      } else {
-        throw new Error(data.error || 'Failed to delete history item');
-      }
-    })
-    .catch(error => {
-      console.error("Error deleting history item:", error);
-      alert(`Failed to delete history item: ${error.message}`);
-      
-      if (deleteBtn) {
-        deleteBtn.disabled = false;
-        deleteBtn.textContent = 'Delete';
       }
     });
   }
@@ -104,16 +84,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const historyUrl = `/cgi-bin/search.cgi?history=1&user=${encodeURIComponent(username)}`;
     
     fetch(historyUrl)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-        if (data.error) {
-          showError(data.error);
-          return;
-        }
-
         if (!Array.isArray(data) || data.length === 0) {
           showNoHistory();
           currentHistoryData = [];
@@ -152,24 +124,15 @@ document.addEventListener("DOMContentLoaded", function () {
             deleteHistoryItem(historyId, historyItem);
           });
         });
-      })
-      .catch(error => {
-        console.error("Error loading history:", error);
-        showError(error.message);
       });
   }
   
   function init() {
     if (username !== 'guest') {
       fetch(`/cgi-bin/search.cgi?get_settings=1&user=${username}`)
-        .then(res => res.ok ? res.json() : { theme: 'light' })
+        .then(res => res.json())
         .then(settings => {
           applyTheme(settings.theme);
-          loadSearchHistory();
-        })
-        .catch(err => {
-          console.error("Failed to load theme, defaulting to light.css", err);
-          applyTheme('light');
           loadSearchHistory();
         });
     } else {
@@ -177,13 +140,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // (REMOVED) Event listeners for the refresh and clear buttons are gone.
-
   confirmationDialog.addEventListener('click', function(e) {
     if (e.target === confirmationDialog) {
       confirmationDialog.style.display = 'none';
     }
   });
-
   init();
 });

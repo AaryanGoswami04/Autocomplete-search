@@ -8,8 +8,8 @@
 #include <algorithm>
 #include <vector>
 #include <iomanip>
-#include <map> // Added for Trie
-#include <cctype> // Added for tolower
+#include <map>
+#include <cctype> 
 
 using namespace std;
 
@@ -21,7 +21,7 @@ struct TrieNode {
 
 class Trie {
     TrieNode* root;
-    // Stores the mapping from a lowercase word to its original cased version
+ 
     map<string, string> originalWords; 
 
     // Helper function to find all words from a given node
@@ -35,12 +35,14 @@ class Trie {
                 results.push_back(originalWords[currentPrefix]);
             }
         }
-        for (auto const& [key, val] : node->children) {
-            dfs(val, currentPrefix + key, results, limit);
-            if (results.size() >= limit) {
-                return;
-            }
-        }
+        for (const auto& pair : node->children) {
+    char key = pair.first;
+    TrieNode* val = pair.second;
+    dfs(val, currentPrefix + key, results, limit);
+    if (results.size() >= limit) {
+        return;
+    }
+}
     }
 
 public:

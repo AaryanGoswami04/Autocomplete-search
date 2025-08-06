@@ -31,13 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
           method: "POST",
           body: fileContent,
           headers: { "Content-Type": "text/plain;charset=UTF-8" }
-        })
-          .then(response => response.text())
-          .then(text => console.log("[script.js] Upload response:", text))
-          .catch(err => {
-            console.error("[script.js] Upload error:", err);
-            alert("Upload failed: " + err.message);
-          });
+        });
       };
       reader.readAsText(file);
     });
@@ -78,12 +72,11 @@ document.addEventListener("DOMContentLoaded", function () {
             saveSearchButton.classList.remove('saved');
 
             const clickUrl = `/cgi-bin/search.cgi?query=${encodeURIComponent(chosen)}&user=${encodeURIComponent(username)}&log=1`;
-            fetch(clickUrl).catch(err => console.error("[script.js] Click log error:", err));
+            fetch(clickUrl);
           });
           suggestions.appendChild(item);
         });
-      })
-      .catch(error => console.error("[script.js] Search error:", error));
+      });
   });
 
   // Event listener for the save icon button
@@ -101,13 +94,7 @@ document.addEventListener("DOMContentLoaded", function () {
           // (MODIFIED) Add 'saved' class to change icon style and disable it
           saveSearchButton.classList.add('saved');
           saveSearchButton.disabled = true;
-        } else {
-          alert('Failed to save search: ' + (data.error || 'Unknown error'));
         }
-      })
-      .catch(err => {
-        console.error("[script.js] Save error:", err);
-        alert('An error occurred while saving.');
       });
   });
 
@@ -118,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!term) return;
       const username = currentUsername || "guest";
       const enterUrl = `/cgi-bin/search.cgi?query=${encodeURIComponent(term)}&user=${encodeURIComponent(username)}&log=1`;
-      fetch(enterUrl).catch(err => console.error("[script.js] Enter log error:", err));
+      fetch(enterUrl);
     }
   });
 
