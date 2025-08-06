@@ -10,7 +10,6 @@
 #include <iomanip>
 #include <map>
 #include <cctype> 
-
 using namespace std;
 
 // --- TRIE DATA STRUCTURE ---
@@ -140,6 +139,7 @@ string json_escape(const string &s) {
     return o.str();
 }
 
+//extracts a specific piece of information from a URL's query string
 string getQueryParam(const string &query, const string &key) {
     size_t pos = query.find(key + "=");
     if (pos == string::npos) return "";

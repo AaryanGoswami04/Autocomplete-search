@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>DSA Autocomplete Search</title>
+  <title>Autocomplete Search</title>
   <link id="theme-stylesheet" rel="stylesheet" href="light.css">
 </head>
 <body>
@@ -46,8 +46,12 @@
 
   <script>
     window.onload = () => {
+      // Finds the file input element and clears any previously selected file.
       document.getElementById("wordFile").value = "";
       
+      // Check if the URL has a query parameter for search.
+      // If it does, set the search box value and focus on it.
+      // Also, remove the query parameter from the URL to prevent reloading with the same search.
       const urlParams = new URLSearchParams(window.location.search);
       const query = urlParams.get('query');
       if (query) {
@@ -56,18 +60,25 @@
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      const username = sessionStorage.getItem('currentUser') || 'guest';
-      if (username !== 'guest') {
-        fetch(`/cgi-bin/search.cgi?get_settings=1&user=${username}`)
-          .then(res => res.ok ? res.json() : { theme: 'light' })
-          .then(settings => {
-            document.getElementById('theme-stylesheet').href = `${settings.theme}.css`;
-          })
-          .catch(err => {
-            console.error("Failed to load theme, defaulting to light.css", err);
-            document.getElementById('theme-stylesheet').href = 'light.css';
-          });
+      // Get the current user from session storage.
+      const username = sessionStorage.getItem('currentUser');
+
+      // If no user is logged in, redirect to the login page.
+      if (!username) {
+        window.location.href = 'login.html';
+        return; // Stop further execution
       }
+      
+      // Fetch user-specific settings since we know a user is logged in.
+      fetch(`/cgi-bin/search.cgi?get_settings=1&user=${username}`)
+        .then(res => res.ok ? res.json() : { theme: 'light' })
+        .then(settings => {
+          document.getElementById('theme-stylesheet').href = `${settings.theme}.css`;
+        })
+        .catch(err => {
+          console.error("Failed to load theme, defaulting to light.css", err);
+          document.getElementById('theme-stylesheet').href = 'light.css';
+        });
     };
   </script>
   <script src="script.js?v=4"></script>
